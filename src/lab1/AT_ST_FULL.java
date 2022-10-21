@@ -6,6 +6,7 @@
 package lab1;
 
 import Environment.Environment;
+import agents.DEST;
 import agents.LARVAFirstAgent;
 import ai.Choice;
 import ai.DecisionSet;
@@ -38,12 +39,15 @@ public class AT_ST_FULL extends LARVAFirstAgent{
             sessionManager, 
             action="", preplan="", 
             content, 
-            sessionKey; 
+            sessionKey,
+            ciudad_seleccionada = ""; 
     ACLMessage open, session; 
     int iplan = 0;
     String[] contentTokens, 
+            ciudades,
             plan = new String[]{"MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","RIGHT","MOVE","MOVE","MOVE","MOVE","MOVE","RIGHT","MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","RIGHT","RIGHT","MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","MOVE","LEFT","MOVE","RIGHT","RIGHT","MOVE","LEFT","MOVE","MOVE","MOVE","EXIT"}; // To parse the content
 
+    
         
     protected String whichWall, nextWhichwall;
     protected double distance, nextdistance;
@@ -70,7 +74,7 @@ public class AT_ST_FULL extends LARVAFirstAgent{
         A.addChoice(new Choice("MOVE")).
                 addChoice(new Choice("LEFT")).
                 addChoice(new Choice("RIGHT"));
-        problem = "Halfmoon3";
+        problem = "Dagobah.Apr1";
     }
 
     @Override
@@ -159,20 +163,65 @@ public class AT_ST_FULL extends LARVAFirstAgent{
     }
 
     public Status MyJoinSession() {
+        Info("Querying CITIES");
+        outbox = new ACLMessage();
+        outbox.setSender(this.getAID());
+        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
+        outbox.setContent("Query CITIES session " + sessionKey);
+        this.LARVAsend(outbox);
+        session  = LARVAblockingReceive();
+        this.getEnvironment().setExternalPerceptions(session.getContent());
+
+        //ciudades = getEnvironment().getExternalPerceptions().split(" "); 
+        ciudades = getEnvironment().getCityList();
+        ciudad_seleccionada = this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
+
+
+
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE AT_ST"});
         outbox = session.createReply();
-        outbox.setContent("Request join session "+sessionKey);
+        outbox.setContent("Request join session " + sessionKey + " in" + ciudad_seleccionada);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
-        if(!session.getContent().startsWith("Confirm")){
-            Error("Could not join session " + sessionKey+" due " + session.getContent());
+        if (!session.getContent().startsWith("Confirm")) {
+            Error("Could not join session " + sessionKey + " due to " + session.getContent());
             return Status.CLOSEPROBLEM;
         }
-        this.openRemote();
+
+        this.doPrepareNPC(1, DEST.class);
+        
+        this.outbox = new ACLMessage();
+        this.outbox.setSender(getAID());
+        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
+        outbox.setContent("Query missions session " + sessionKey);
+        this.LARVAsend(outbox);
+
+        session = LARVAblockingReceive();
+        this.getEnvironment().setExternalPerceptions(session.getContent());
+        this.getEnvironment().setCurrentMission(this.chooseMission());
+
         this.MyReadPerceptions();
-        return Status.SOLVEPROBLEM;
+        //Info(this.easyPrintPerceptions());
+
+        return MySolveProblem();
     }
+    
+//    public Status MyJoinSession() {
+//        this.resetAutoNAV();
+//        this.DFAddMyServices(new String[]{"TYPE AT_ST"});
+//        outbox = session.createReply();
+//        outbox.setContent("Request join session "+sessionKey);
+//        this.LARVAsend(outbox);
+//        session = this.LARVAblockingReceive();
+//        if(!session.getContent().startsWith("Confirm")){
+//            Error("Could not join session " + sessionKey+" due " + session.getContent());
+//            return Status.CLOSEPROBLEM;
+//        }
+//        this.openRemote();
+//        this.MyReadPerceptions();
+//        return Status.SOLVEPROBLEM;
+//    }
     
     @Override
     protected Choice Ag(Environment E, DecisionSet A){
@@ -354,6 +403,7 @@ public class AT_ST_FULL extends LARVAFirstAgent{
         this.LARVAsend(outbox);
         inbox = LARVAblockingReceive();
         Info(problemManager + " says: " + inbox.getContent());
+        this.doDestroyNPC();
         return Status.CHECKOUT;
     }
     
@@ -444,3 +494,4 @@ public class AT_ST_FULL extends LARVAFirstAgent{
     }
     
 }
+
