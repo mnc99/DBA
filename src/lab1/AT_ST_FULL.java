@@ -258,6 +258,33 @@ public class AT_ST_FULL extends LARVAFirstAgent{
         
     }
     
+    /**
+    * @author Moisés Noguera Carrillo
+    */
+    
+    public boolean MyMoveIn(String ciudad) {
+        
+        //Solicitar navegación asistida a la ciudad
+        Info("Requesting AUTONAV to " + ciudad);
+        outbox = new ACLMessage();
+        outbox.setSender(this.getAID());
+        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
+        outbox.setContent("Request course in " + ciudad + " session" + sessionKey);
+        this.LARVAsend(outbox);
+        session = this.LARVAblockingReceive();
+        
+        //Control de posibles errores
+        if (session.getContent().startsWith("Failure")){
+            Error("Could not enable AUTONAV to city due to " + session.getContent());
+            return false;
+        } 
+        
+        this.getEnvironment().setExternalPerceptions(session.getContent());
+        
+        
+        return true;
+    }
+    
      public boolean MyReadPerceptions() {
         Info("Reading perceptions...");
         outbox = session.createReply();
