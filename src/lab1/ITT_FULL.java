@@ -92,6 +92,7 @@ public class ITT_FULL extends LARVAFirstAgent{
 
        
         this.activateSequenceDiagrams();
+        //this.deactivateSequenceDiagrams();
 
         logger.onEcho();
 
@@ -231,7 +232,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.getEnvironment().setExternalPerceptions(session.getContent());
         this.MyReadPerceptions();
         this.getEnvironment().setCurrentMission(this.chooseMission());
-
+        
         
         // Info(this.easyPrintPerceptions());
         
@@ -289,27 +290,25 @@ public class ITT_FULL extends LARVAFirstAgent{
     * @author Moisés Noguera Carrillo
     */
     
-    public boolean MyMoveIn(String ciudad) {
+    public Status MyMoveIn(String ciudad) {
         
         //Solicitar navegación asistida a la ciudad
         Info("Requesting AUTONAV to " + ciudad);
-        outbox = new ACLMessage();
-        outbox.setSender(this.getAID());
-        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
-        outbox.setContent("Request course in " + ciudad + " session" + sessionKey);
+        outbox = session.createReply();
+        outbox.setContent("Request course in " + ciudad + " session " + sessionKey);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
         
         //Control de posibles errores
-        if (session.getContent().startsWith("Failure")){
+        if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")){
             Error("Could not enable AUTONAV to city due to " + session.getContent());
-            return false;
+            return Status.CLOSEPROBLEM;
         } 
         
         this.getEnvironment().setExternalPerceptions(session.getContent());
         
         
-        return true;
+        return Status.SOLVEPROBLEM;
     }
     
      public boolean MyReadPerceptions() {
@@ -428,7 +427,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     public Status MyCloseProblem() {
         outbox = open.createReply();
         outbox.setContent("Cancel session " + sessionKey);
-        Info("Closing problem Helloworld, session " + sessionKey);
+        Info("Closing problem " + problem + ", session " + sessionKey);
         this.LARVAsend(outbox);
         inbox = LARVAblockingReceive();
         Info(problemManager + " says: " + inbox.getContent());
