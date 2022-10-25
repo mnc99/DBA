@@ -104,8 +104,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         A.addChoice(new Choice("MOVE")).
                 addChoice(new Choice("LEFT")).
                 addChoice(new Choice("RIGHT"));
-//        problem = "Dagobah.Apr1";
-        problem = "Halfmoon3";
+        problem = "Dagobah.Apr1";
     }
 
     @Override
