@@ -211,7 +211,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE ITT"});
         outbox = session.createReply();
-        outbox.setContent("Request join session " + sessionKey + " in" + ciudad_seleccionada);
+        outbox.setContent("Request join session " + sessionKey + " in " + ciudad_seleccionada);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
         if (!session.getContent().startsWith("Confirm")) {
@@ -229,9 +229,10 @@ public class ITT_FULL extends LARVAFirstAgent{
 
         session = LARVAblockingReceive();
         this.getEnvironment().setExternalPerceptions(session.getContent());
+        this.MyReadPerceptions();
         this.getEnvironment().setCurrentMission(this.chooseMission());
 
-        this.MyReadPerceptions();
+        
         // Info(this.easyPrintPerceptions());
         
         
