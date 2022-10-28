@@ -14,6 +14,7 @@ import ai.Plan;
 import geometry.Point3D;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
+import java.util.StringTokenizer;
 import tools.emojis;
 import world.Perceptor;
 
@@ -54,6 +55,9 @@ public class ITT_FULL extends LARVAFirstAgent{
     Plan behaviour = null;
     Environment Ei, Ef;
     Choice a;
+    
+    String goalActual;
+    Boolean startedGoal = false;
     
     public Plan AgPlan(Environment E, DecisionSet A) {
         
@@ -173,7 +177,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.outbox = new ACLMessage();
         outbox.setSender(getAID());
         outbox.addReceiver(new AID(problemManager, AID.ISLOCALNAME));
-        outbox.setContent("Request open " + problem);
+        outbox.setContent("Request open " + problem + " alias " + sessionAlias);
         this.LARVAsend(outbox);
         Info("Request opening problem " + problem + " to " + problemManager);
         
@@ -257,33 +261,70 @@ public class ITT_FULL extends LARVAFirstAgent{
     
     public Status MySolveProblem() {
         
-        if (G(E)) {
-            Info("The problem " + problem + " is solved");
-            return Status.CLOSEPROBLEM;
-        }
         
-        behaviour = this.AgPlan(E, A);
-        
-        if (behaviour == null || behaviour.isEmpty()) {
-            Alert("Found no plan to execute");
-            return Status.CLOSEPROBLEM;
-        }
-        else {
-            Info("Plan to execute: " + behaviour.toString());
-            while(!behaviour.isEmpty()) {
-                a = behaviour.get(0);
-                behaviour.remove(0);
-                Info("Executing " + a);
-                this.MyExecuteAction(a.getName());
-                
-                if (!Ve(E)) {
-                    this.Error("The agent is not alive " + E.getStatus());
+        goalActual = E.getCurrentGoal();
+        StringTokenizer tokens = new StringTokenizer(goalActual);
+        String primeraPalabra = tokens.nextToken();
+        switch (primeraPalabra) {
+            case "MOVEIN":
+                String ciudad = tokens.nextToken();
+                if (!startedGoal){
+                    //Solicitar navegación asistida a la ciudad
+                    Info("Requesting AUTONAV to " + ciudad);
+                    outbox = session.createReply();
+                    outbox.setContent("Request course in " + ciudad + " session " + sessionKey);
+                    this.LARVAsend(outbox);
+                    session = this.LARVAblockingReceive();
+                    startedGoal = true;
+                } 
+
+                //Control de posibles errores
+                if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")){
+                    Error("Could not enable AUTONAV to city due to " + session.getContent());
+                    return Status.CLOSEPROBLEM;
+                } 
+
+                this.getEnvironment().setExternalPerceptions(session.getContent());
+
+                if (G(E)) {
+                    Info("The problem " + problem + " is solved");
+                    // booleano a false de nuevo
+                    startedGoal = false;
+                    E.setNextGoal();
+                    return Status.SOLVEPROBLEM;
+                }
+
+                behaviour = this.AgPlan(E, A);
+
+                if (behaviour == null || behaviour.isEmpty()) {
+                    Alert("Found no plan to execute");
                     return Status.CLOSEPROBLEM;
                 }
-            }
+                else {
+                    Info("Plan to execute: " + behaviour.toString());
+                    while(!behaviour.isEmpty()) {
+                        a = behaviour.get(0);
+                        behaviour.remove(0);
+                        Info("Executing " + a);
+                        this.MyExecuteAction(a.getName());
+
+                        if (!Ve(E)) {
+                            this.Error("The agent is not alive " + E.getStatus());
+                            return Status.CLOSEPROBLEM;
+                        }
+                    }
+                }
+                this.MyReadPerceptions();
+                break;
+                
+            default:
+                return Status.CLOSEPROBLEM;
+
         }
-        this.MyReadPerceptions();
-        return Status.SOLVEPROBLEM;
+        
+        if (!E.getCurrentMission().isOver())
+            return Status.SOLVEPROBLEM;
+        return Status.CLOSEPROBLEM;
     }
     
     /**
@@ -291,21 +332,6 @@ public class ITT_FULL extends LARVAFirstAgent{
     */
     
     public Status MyMoveIn(String ciudad) {
-        
-        //Solicitar navegación asistida a la ciudad
-        Info("Requesting AUTONAV to " + ciudad);
-        outbox = session.createReply();
-        outbox.setContent("Request course in " + ciudad + " session " + sessionKey);
-        this.LARVAsend(outbox);
-        session = this.LARVAblockingReceive();
-        
-        //Control de posibles errores
-        if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")){
-            Error("Could not enable AUTONAV to city due to " + session.getContent());
-            return Status.CLOSEPROBLEM;
-        } 
-        
-        this.getEnvironment().setExternalPerceptions(session.getContent());
         
         
         return Status.SOLVEPROBLEM;
