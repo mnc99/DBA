@@ -43,8 +43,9 @@ public class ITT_FULL extends LARVAFirstAgent{
             sessionKey,
             ciudad_seleccionada = ""; 
     ACLMessage open, session;
-    String[] contentTokens, 
-            ciudades;
+    String[] contentTokens, ciudades;
+    String[] problems = {"Dagobah.Apr1", "Dagobah.Apr2", "Dagobah.Not1",
+            "Dagobah.Not2", "Endor.Sob1", "Endor.Sob2", "Endor.Hon1", "Endor.Hon2"};
 
     
         
@@ -109,7 +110,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         A.addChoice(new Choice("MOVE")).
                 addChoice(new Choice("LEFT")).
                 addChoice(new Choice("RIGHT"));
-        problem = "Dagobah.Not2";
+        problem = this.inputSelect("Please, select the problem:", problems, " ");
     }
 
     @Override
@@ -285,7 +286,7 @@ public class ITT_FULL extends LARVAFirstAgent{
                 this.getEnvironment().setExternalPerceptions(session.getContent());
 
                 if (G(E)) {
-                    Info("The problem " + problem + " is solved");
+                    Info("The goal " + E.getCurrentGoal() + " is solved");
                     // booleano a false de nuevo
                     startedGoal = false;
                     E.setNextGoal();
