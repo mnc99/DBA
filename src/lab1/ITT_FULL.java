@@ -109,7 +109,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         A.addChoice(new Choice("MOVE")).
                 addChoice(new Choice("LEFT")).
                 addChoice(new Choice("RIGHT"));
-        problem = "Dagobah.Apr1";
+        problem = "Dagobah.Not2";
     }
 
     @Override
@@ -199,9 +199,7 @@ public class ITT_FULL extends LARVAFirstAgent{
 
     public Status MyJoinSession() {
         Info("Querying CITIES");
-        outbox = new ACLMessage();
-        outbox.setSender(this.getAID());
-        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
+        outbox = session.createReply();
         outbox.setContent("Query CITIES session " + sessionKey);
         this.LARVAsend(outbox);
         session  = LARVAblockingReceive();
@@ -226,16 +224,17 @@ public class ITT_FULL extends LARVAFirstAgent{
 
         this.doPrepareNPC(1, DEST.class);
         
-        this.outbox = new ACLMessage();
-        this.outbox.setSender(getAID());
-        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
+        this.outbox = session.createReply(); 
         outbox.setContent("Query missions session " + sessionKey);
         this.LARVAsend(outbox);
 
         session = LARVAblockingReceive();
         this.getEnvironment().setExternalPerceptions(session.getContent());
         this.MyReadPerceptions();
-        this.getEnvironment().setCurrentMission(this.chooseMission());
+        
+        String mission = this.chooseMission();
+        Info("Mission selected: " + mission);
+        this.getEnvironment().setCurrentMission(mission);
         
         
         // Info(this.easyPrintPerceptions());
@@ -260,7 +259,6 @@ public class ITT_FULL extends LARVAFirstAgent{
     }
     
     public Status MySolveProblem() {
-        
         
         goalActual = E.getCurrentGoal();
         StringTokenizer tokens = new StringTokenizer(goalActual);
@@ -315,6 +313,12 @@ public class ITT_FULL extends LARVAFirstAgent{
                     }
                 }
                 this.MyReadPerceptions();
+                break;
+                
+            case "LIST":
+                String tipoPersona = tokens.nextToken();
+                myStatus = this.doQueryPeople(tipoPersona);
+                E.setNextGoal();
                 break;
                 
             default:
@@ -470,12 +474,24 @@ public class ITT_FULL extends LARVAFirstAgent{
     }
     
     public double goAvoid(Environment E, Choice a) {
-        if (a.getName().equals("RIGHT")) {
-            nextWhichwall = "LEFT";
-            nextdistance = E.getDistance();
-            nextPoint = E.getGPS();
-            return Choice.ANY_VALUE;
+        
+        if (E.isTargetLeft()) {
+            if (a.getName().equals("LEFT")) {
+                nextWhichwall = "RIGHT";
+                nextdistance = E.getDistance();
+                nextPoint = E.getGPS();
+                return Choice.ANY_VALUE;
+            }
+        } else {
+            if (a.getName().equals("RIGHT")) {
+                nextWhichwall = "LEFT";
+                nextdistance = E.getDistance();
+                nextPoint = E.getGPS();
+                return Choice.ANY_VALUE;
+            }
         }
+        
+        
         return Choice.MAX_UTILITY;
     }
     
@@ -540,6 +556,22 @@ public class ITT_FULL extends LARVAFirstAgent{
         nextWhichwall = whichWall = "NONE";
         nextdistance = distance = Choice.MAX_UTILITY;
         nextPoint = point = null;
+    }
+    
+    /**
+    * @author Carlos Galán Carracedo 26 de octubre
+    */
+    protected Status doQueryPeople(String type){
+        Info("Querying people "+type);
+        outbox = session.createReply();
+        outbox.setContent("Query "+type.toUpperCase()+" session " + sessionKey);
+        this.LARVAsend(outbox);
+        session= LARVAblockingReceive();
+        getEnvironment().setExternalPerceptions(session.getContent());
+        Message("Found "+getEnvironment().getPeople().length+" "+type+" in "
+                +getEnvironment().getCurrentCity());
+//        getEnvironment().getCurrentMission().nextGoal();
+        return Status.SOLVEPROBLEM;
     }
     
 }
