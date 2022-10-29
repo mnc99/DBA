@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lab1;
+package starwars;
 
 import Environment.Environment;
 import agents.DEST;
@@ -14,6 +14,7 @@ import ai.Plan;
 import geometry.Point3D;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 import tools.emojis;
 import world.Perceptor;
@@ -23,6 +24,8 @@ import world.Perceptor;
  * @author ana
  */
 public class ITT_FULL extends LARVAFirstAgent{
+
+    private ACLMessage outboxRep;
 
     enum Status {
         START, 
@@ -35,17 +38,20 @@ public class ITT_FULL extends LARVAFirstAgent{
         JOINSESSION
     }
     Status myStatus;   
-    String service = "PMANAGER", 
+    String service = "PMANAGER",
             problem, 
             problemManager = "", 
+            miDEST = "",
             sessionManager,  
             content, 
             sessionKey,
+            report = "",
             ciudad_seleccionada = ""; 
-    ACLMessage open, session;
+    ACLMessage open, session, openRep;
     String[] contentTokens, ciudades;
     String[] problems = {"Dagobah.Apr1", "Dagobah.Apr2", "Dagobah.Not1",
             "Dagobah.Not2", "Endor.Sob1", "Endor.Sob2", "Endor.Hon1", "Endor.Hon2"};
+    ArrayList<String> listaDEST;
 
     
         
@@ -237,10 +243,14 @@ public class ITT_FULL extends LARVAFirstAgent{
         Info("Mission selected: " + mission);
         this.getEnvironment().setCurrentMission(mission);
         
-        
+        // Conseguir DEST 
+         listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
+         for(int i = 0 ; i < listaDEST.size(); i++){
+             if(this.DFHasService(listaDEST.get(i), "TYPE DEST")){
+                 miDEST = listaDEST.get(i);
+             }
+         }        
         // Info(this.easyPrintPerceptions());
-        
-        
 
         return Status.SOLVEPROBLEM;
     }
@@ -319,6 +329,28 @@ public class ITT_FULL extends LARVAFirstAgent{
             case "LIST":
                 String tipoPersona = tokens.nextToken();
                 myStatus = this.doQueryPeople(tipoPersona);
+                E.setNextGoal();
+                break;
+                
+            case "REPORT":
+                report += ";"; 
+                
+                this.outboxRep = new ACLMessage();
+                outboxRep.setSender(getAID());
+                outboxRep.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
+                outboxRep.setContent(report);
+                this.LARVAsend(outboxRep);
+                Info("Sended report \"" + report + "\" to " + miDEST);
+
+                openRep = LARVAblockingReceive();
+                Info(miDEST + " says: " + openRep.getContent());
+                content = openRep.getContent();
+                if (content.equals("Confirm")) {
+                    Message(miDEST + " has received the report" );
+                } else {
+                    Error(content);
+                    return Status.CHECKOUT;
+                }
                 E.setNextGoal();
                 break;
                 
@@ -569,9 +601,17 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.LARVAsend(outbox);
         session= LARVAblockingReceive();
         getEnvironment().setExternalPerceptions(session.getContent());
-        Message("Found "+getEnvironment().getPeople().length+" "+type+" in "
-                +getEnvironment().getCurrentCity());
+        if(report == ""){
+        report += "REPORT;" + getEnvironment().getCurrentCity() + " " + type.toLowerCase() + " " + getEnvironment().getPeople().length ;            
+        }else{
+        report += " " + type.toLowerCase() + " " + getEnvironment().getPeople().length ;            
+        }
+
+//        Message("Found "+getEnvironment().getPeople().length+" "+type+" in "
+//                +getEnvironment().getCurrentCity());
 //        getEnvironment().getCurrentMission().nextGoal();
+        
+//        Message(report);
         return Status.SOLVEPROBLEM;
     }
     
