@@ -3,10 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package starwars;
+package lab1;
+//package starwars;
 
 import Environment.Environment;
 import agents.DEST;
+import agents.DroidShip;
 import agents.LARVAFirstAgent;
 import ai.Choice;
 import ai.DecisionSet;
@@ -21,7 +23,9 @@ import world.Perceptor;
 
 /**
  *
- * @author ana
+ * @author Ana García Muñoz (Creación del agente ITT_FULL deliberativo)
+ * @author Moisés Noguera Carrillo (Añadidos algunos métodos que faltaban del 
+ * agente deliverativo al crear la clase)
  */
 public class ITT_FULL extends LARVAFirstAgent{
 
@@ -46,6 +50,7 @@ public class ITT_FULL extends LARVAFirstAgent{
             content, 
             sessionKey,
             report = "",
+            ciudadActual,
             ciudad_seleccionada = ""; 
     ACLMessage open, session, openRep;
     String[] contentTokens, ciudades;
@@ -203,7 +208,11 @@ public class ITT_FULL extends LARVAFirstAgent{
             return Status.CHECKOUT;
         }
     }
-
+    /**
+     * 
+     * @author Javier Serrano Lucas
+     * @author Ana García Muñoz (Parte de contacto con DEST)
+     */
     public Status MyJoinSession() {
         Info("Querying CITIES");
         outbox = session.createReply();
@@ -230,6 +239,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
 
         this.doPrepareNPC(1, DEST.class);
+        DroidShip.Debug();
         
         this.outbox = session.createReply(); 
         outbox.setContent("Query missions session " + sessionKey);
@@ -246,11 +256,11 @@ public class ITT_FULL extends LARVAFirstAgent{
         // Conseguir DEST 
          listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
          for(int i = 0 ; i < listaDEST.size(); i++){
-             if(this.DFHasService(listaDEST.get(i), "TYPE DEST")){
+             if(this.DFHasService(listaDEST.get(i), sessionKey)){
                  miDEST = listaDEST.get(i);
+                 Alert("FOUND AGENT DEST" + miDEST);
              }
          }        
-        // Info(this.easyPrintPerceptions());
 
         return Status.SOLVEPROBLEM;
     }
@@ -269,6 +279,13 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
     }
     
+    /**
+     * 
+     * @author Moisés Noguera Carrillo (MOVEIN)
+     * @author Javier Serrano Lucas (Estructura general del método)
+     * @author Carlos Galán Carracedo (LIST)
+     * @author Ana García Muñoz (REPORT)
+     */
     public Status MySolveProblem() {
         
         goalActual = E.getCurrentGoal();
@@ -297,7 +314,6 @@ public class ITT_FULL extends LARVAFirstAgent{
 
                 if (G(E)) {
                     Info("The goal " + E.getCurrentGoal() + " is solved");
-                    // booleano a false de nuevo
                     startedGoal = false;
                     E.setNextGoal();
                     return Status.SOLVEPROBLEM;
@@ -364,17 +380,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         return Status.CLOSEPROBLEM;
     }
     
-    /**
-    * @author Moisés Noguera Carrillo
-    */
-    
-    public Status MyMoveIn(String ciudad) {
-        
-        
-        return Status.SOLVEPROBLEM;
-    }
-    
-     public boolean MyReadPerceptions() {
+    public boolean MyReadPerceptions() {
         Info("Reading perceptions...");
         outbox = session.createReply();
         outbox.setContent("Query sensors session " + sessionKey);
@@ -487,6 +493,10 @@ public class ITT_FULL extends LARVAFirstAgent{
         return true;
     }
 
+    /**
+     * 
+     * @author Carlos Galán Carracedo (añadida la destrucción del NPC) 
+     */
     public Status MyCloseProblem() {
         outbox = open.createReply();
         outbox.setContent("Cancel session " + sessionKey);
@@ -528,13 +538,28 @@ public class ITT_FULL extends LARVAFirstAgent{
         return Choice.MAX_UTILITY;
     }
     
+    /**
+     * 
+     * @author Moisés Noguera Carrillo
+     */
+    public double turnBack(Environment E, Choice a) {
+        if (a.getName().equals("RIGHT")) {
+            return Choice.ANY_VALUE;
+        }
+        else
+            return Choice.MAX_UTILITY;
+    }
+    
     @Override
     protected double U(Environment E, Choice a) {
         if (whichWall.equals("LEFT")) {
             return goFollowWallLeft(E, a);
         } else if (!E.isFreeFront()) {
             return goAvoid(E, a);
-        } else {
+        } else if (E.isTargetBack()) {
+            return turnBack(E, new Choice("RIGHT"));
+        }
+        else {
             return goAhead(E, a);
         }
     }
@@ -592,7 +617,8 @@ public class ITT_FULL extends LARVAFirstAgent{
     }
     
     /**
-    * @author Carlos Galán Carracedo 26 de octubre
+    * @author Carlos Galán Carracedo
+    * @author Ana García Múñoz (parte asociada al mensaje de REPORT)
     */
     protected Status doQueryPeople(String type){
         Info("Querying people "+type);
@@ -601,10 +627,17 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.LARVAsend(outbox);
         session= LARVAblockingReceive();
         getEnvironment().setExternalPerceptions(session.getContent());
+        
         if(report == ""){
-        report += "REPORT;" + getEnvironment().getCurrentCity() + " " + type.toLowerCase() + " " + getEnvironment().getPeople().length ;            
+            report += "REPORT;" + getEnvironment().getCurrentCity() + " " + type.toLowerCase() + " " + getEnvironment().getPeople().length;
+            ciudadActual = getEnvironment().getCurrentCity();
         }else{
-        report += " " + type.toLowerCase() + " " + getEnvironment().getPeople().length ;            
+            if (!getEnvironment().getCurrentCity().equals(ciudadActual)){
+                report += ";" + getEnvironment().getCurrentCity();
+                ciudadActual = getEnvironment().getCurrentCity();
+            }
+
+            report += " " + type.toLowerCase() + " " + getEnvironment().getPeople().length;                
         }
 
 //        Message("Found "+getEnvironment().getPeople().length+" "+type+" in "
