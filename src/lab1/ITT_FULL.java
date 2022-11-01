@@ -516,6 +516,15 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
     }
     
+    /**
+     * 
+     * @author Carlos Galán Carracedo
+     * @author Moisés Noguera Carrillo
+     * Añadida heurística para que en el caso de que haya un obstáculo
+     * y el objetivo esté a la izquierda el agente rodee por la izquierda y 
+     * en el caso de que esté a la derecha lo haga por ese lado. Anteriormente
+     * siempre se rodeaba por la derecha.
+     */
     public double goAvoid(Environment E, Choice a) {
         
         if (E.isTargetLeft()) {
