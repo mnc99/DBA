@@ -55,7 +55,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     ACLMessage open, session, openRep;
     String[] contentTokens, ciudades;
     String[] problems = {"Dagobah.Apr1", "Dagobah.Apr2", "Dagobah.Not1",
-            "Dagobah.Not2", "Endor.Sob1", "Endor.Sob2", "Endor.Hon1", "Endor.Hon2"};
+            "Dagobah.Not2", "Endor.Sob1", "Endor.Sob2", "Endor.Hon1", "Endor.Hon2", "AlertDeathStar"};
     ArrayList<String> listaDEST;
 
     
@@ -107,8 +107,8 @@ public class ITT_FULL extends LARVAFirstAgent{
         super.setup();
 
        
-        this.activateSequenceDiagrams();
-        //this.deactivateSequenceDiagrams();
+        //this.activateSequenceDiagrams();
+        this.deactivateSequenceDiagrams();
 
         logger.onEcho();
 
@@ -291,6 +291,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         goalActual = E.getCurrentGoal();
         StringTokenizer tokens = new StringTokenizer(goalActual);
         String primeraPalabra = tokens.nextToken();
+        
         switch (primeraPalabra) {
             case "MOVEIN":
                 String ciudad = tokens.nextToken();
@@ -365,7 +366,7 @@ public class ITT_FULL extends LARVAFirstAgent{
                     Message(miDEST + " has received the report" );
                 } else {
                     Error(content);
-                    return Status.CHECKOUT;
+                    return Status.CLOSEPROBLEM;
                 }
                 E.setNextGoal();
                 break;
@@ -377,6 +378,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         
         if (!E.getCurrentMission().isOver())
             return Status.SOLVEPROBLEM;
+        
         return Status.CLOSEPROBLEM;
     }
     
@@ -542,8 +544,8 @@ public class ITT_FULL extends LARVAFirstAgent{
                 return Choice.ANY_VALUE;
             }
         }
-        
-        
+
+                
         return Choice.MAX_UTILITY;
     }
     
