@@ -529,16 +529,16 @@ public class ITT_FULL extends LARVAFirstAgent{
      */
     public double goAvoid(Environment E, Choice a) {
         
-        if (E.isTargetLeft()) {
-            if (a.getName().equals("LEFT")) {
-                nextWhichwall = "RIGHT";
-                nextdistance = E.getDistance();
-                nextPoint = E.getGPS();
-                return Choice.ANY_VALUE;
-            }
-        } else {
+        if (E.isTargetRight()) {
             if (a.getName().equals("RIGHT")) {
                 nextWhichwall = "LEFT";
+                nextdistance = E.getDistance();
+                nextPoint = E.getGPS();
+            return Choice.ANY_VALUE;
+            }
+        } else {
+            if (a.getName().equals("LEFT")) {
+                nextWhichwall = "RIGHT";
                 nextdistance = E.getDistance();
                 nextPoint = E.getGPS();
                 return Choice.ANY_VALUE;
@@ -565,6 +565,8 @@ public class ITT_FULL extends LARVAFirstAgent{
     protected double U(Environment E, Choice a) {
         if (whichWall.equals("LEFT")) {
             return goFollowWallLeft(E, a);
+        } else if (whichWall.equals("RIGHT")){
+            return goFollowWallRight(E, a);
         } else if (!E.isFreeFront()) {
             return goAvoid(E, a);
         } else if (E.isTargetBack()) {
@@ -576,7 +578,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     }
 
     public double goFollowWallLeft(Environment E, Choice a) {
-         Info("Siguiendo pared");
+         Info("Siguiendo pared izquierda");
          if (E.isFreeFrontLeft()) {
             return goTurnOnWallLeft(E, a);
         } else if (E.isTargetFrontRight()
@@ -587,6 +589,22 @@ public class ITT_FULL extends LARVAFirstAgent{
             return goKeepOnWall(E, a);
         } else {
             return goRevolveWallLeft(E, a);
+        }
+
+    }
+    
+    public double goFollowWallRight(Environment E, Choice a) {
+         Info("Siguiendo pared derecha");
+         if (E.isFreeFrontRight()) {
+            return goTurnOnWallRight(E, a);
+        } else if (E.isTargetFrontLeft()
+                && E.isFreeFrontLeft()
+                && E.getDistance() < point.planeDistanceTo(E.getTarget())) {
+            return goStopWallRight(E, a);
+        } else if (E.isFreeFront()) {
+            return goKeepOnWall(E, a);
+        } else {
+            return goRevolveWallRight(E, a);
         }
 
     }
@@ -605,6 +623,14 @@ public class ITT_FULL extends LARVAFirstAgent{
         return Choice.MAX_UTILITY;
 
     }
+    
+    public double goTurnOnWallRight(Environment E, Choice a) {
+        if (a.getName().equals("RIGHT")) {
+            return Choice.ANY_VALUE;
+        }
+        return Choice.MAX_UTILITY;
+
+    }
 
     public double goRevolveWallLeft(Environment E, Choice a) {
         if (a.getName().equals("RIGHT")) {
@@ -612,9 +638,24 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
         return Choice.MAX_UTILITY;
     }
+    
+    public double goRevolveWallRight(Environment E, Choice a) {
+        if (a.getName().equals("LEFT")) {
+            return Choice.ANY_VALUE;
+        }
+        return Choice.MAX_UTILITY;
+    }
 
     public double goStopWallLeft(Environment E, Choice a) {
         if (a.getName().equals("RIGHT")) {
+            this.resetAutoNAV();
+            return Choice.ANY_VALUE;
+        }
+        return Choice.MAX_UTILITY;
+    }
+    
+    public double goStopWallRight(Environment E, Choice a) {
+        if (a.getName().equals("LEFT")) {
             this.resetAutoNAV();
             return Choice.ANY_VALUE;
         }
