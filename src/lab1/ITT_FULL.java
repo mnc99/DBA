@@ -7,6 +7,7 @@ package lab1;
 //package starwars;
 
 import Environment.Environment;
+import agents.BB1F;
 import agents.DEST;
 import agents.DroidShip;
 import agents.LARVAFirstAgent;
@@ -54,8 +55,8 @@ public class ITT_FULL extends LARVAFirstAgent{
             ciudad_seleccionada = ""; 
     ACLMessage open, session, openRep;
     String[] contentTokens, ciudades;
-    String[] problems = {"Dagobah.Apr1", "Dagobah.Apr2", "Dagobah.Not1",
-            "Dagobah.Not2", "Endor.Sob1", "Endor.Sob2", "Endor.Hon1", "Endor.Hon2", "AlertDeathStar"};
+    String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
+            "Wobani.Hon1"};
     ArrayList<String> listaDEST;
 
     
@@ -208,6 +209,54 @@ public class ITT_FULL extends LARVAFirstAgent{
             return Status.CHECKOUT;
         }
     }
+    
+    /**
+     * 
+     * @author Moisés Noguera Carrillo
+     */
+    public ArrayList<String> getDroidShipsOfType(String type) {
+        
+        ArrayList<String> droidShipList = new ArrayList<String>();
+        ArrayList<String> droidShipListInSession = new ArrayList<String>();
+        
+        droidShipList = this.DFGetAllProvidersOf("TYPE BB1F");
+        
+        for (int i = 0; i < droidShipList.size(); i++) {
+            if (this.DFHasService(droidShipList.get(i), sessionKey)) {
+                droidShipListInSession.add(droidShipList.get(i));
+            }
+        }
+        
+        return droidShipListInSession;
+        
+    }
+    
+    /**
+     * 
+     * @author Moisés Noguera Carrillo
+     */
+    
+    @Override
+    public ACLMessage LARVAblockingReceive() {
+        
+        boolean exit = false;
+        ACLMessage res = null;
+        
+        while (!exit) {
+            res = super.LARVAblockingReceive();
+            if (res.getContent().equals("TRANSPONDER") && res.getPerformative() == ACLMessage.QUERY_REF) {
+                outbox = res.createReply();
+                outbox.setPerformative(ACLMessage.INFORM);
+                outbox.setContent(this.Transponder());
+                LARVAsend(outbox);
+            }
+            else {
+                exit = true;
+            }
+        }
+        return res;
+    }
+    
     /**
      * 
      * @author Javier Serrano Lucas
@@ -216,6 +265,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     public Status MyJoinSession() {
         Info("Querying CITIES");
         outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query CITIES session " + sessionKey);
         this.LARVAsend(outbox);
         session  = LARVAblockingReceive();
@@ -230,6 +280,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE ITT"});
         outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.REQUEST);
         outbox.setContent("Request join session " + sessionKey + " in " + ciudad_seleccionada);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
@@ -239,9 +290,11 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
 
         this.doPrepareNPC(1, DEST.class);
+        this.doPrepareNPC(5, BB1F.class);
         DroidShip.Debug();
         
-        this.outbox = session.createReply(); 
+        this.outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query missions session " + sessionKey);
         this.LARVAsend(outbox);
 
@@ -254,13 +307,15 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.getEnvironment().setCurrentMission(mission);
         
         // Conseguir DEST 
-         listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
-         for(int i = 0 ; i < listaDEST.size(); i++){
-             if(this.DFHasService(listaDEST.get(i), sessionKey)){
-                 miDEST = listaDEST.get(i);
-                 Alert("FOUND AGENT DEST" + miDEST);
-             }
-         }        
+        listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
+        for(int i = 0 ; i < listaDEST.size(); i++){
+            if(this.DFHasService(listaDEST.get(i), sessionKey)){
+                miDEST = listaDEST.get(i);
+                Alert("FOUND AGENT DEST" + miDEST);
+            }
+        }   
+        
+        Alert("FOUND " + this.getDroidShipsOfType("TYPE BB1F").size() + " OF TYPE BB1F");
 
         return Status.SOLVEPROBLEM;
     }
@@ -299,6 +354,7 @@ public class ITT_FULL extends LARVAFirstAgent{
                     //Solicitar navegación asistida a la ciudad
                     Info("Requesting AUTONAV to " + ciudad);
                     outbox = session.createReply();
+                    outbox.setPerformative(ACLMessage.REQUEST);
                     outbox.setContent("Request course in " + ciudad + " session " + sessionKey);
                     this.LARVAsend(outbox);
                     session = this.LARVAblockingReceive();
@@ -355,6 +411,7 @@ public class ITT_FULL extends LARVAFirstAgent{
                 this.outboxRep = new ACLMessage();
                 outboxRep.setSender(getAID());
                 outboxRep.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
+//                outboxRep.setPerformative(userID);
                 outboxRep.setContent(report);
                 this.LARVAsend(outboxRep);
                 Info("Sended report \"" + report + "\" to " + miDEST);
@@ -385,6 +442,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     public boolean MyReadPerceptions() {
         Info("Reading perceptions...");
         outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query sensors session " + sessionKey);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
@@ -485,6 +543,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     public boolean MyExecuteAction(String action) {
         Info("Executing action " + action);
         outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.REQUEST);
         outbox.setContent("Request execute " + action + " session " + sessionKey);
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
@@ -501,6 +560,7 @@ public class ITT_FULL extends LARVAFirstAgent{
      */
     public Status MyCloseProblem() {
         outbox = open.createReply();
+        outbox.setPerformative(ACLMessage.CANCEL);
         outbox.setContent("Cancel session " + sessionKey);
         Info("Closing problem " + problem + ", session " + sessionKey);
         this.LARVAsend(outbox);
@@ -675,6 +735,7 @@ public class ITT_FULL extends LARVAFirstAgent{
     protected Status doQueryPeople(String type){
         Info("Querying people "+type);
         outbox = session.createReply();
+        outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query "+type.toUpperCase()+" session " + sessionKey);
         this.LARVAsend(outbox);
         session= LARVAblockingReceive();
