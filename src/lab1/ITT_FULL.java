@@ -71,7 +71,10 @@ public class ITT_FULL extends LARVAFirstAgent {
 
     String goalActual;
     Boolean startedGoal = false;
-
+    
+    /**
+    * @author Ana García Muñoz (needRecharge)
+    */
     public Plan AgPlan(Environment E, DecisionSet A) {
 
         Ei = E.clone();
@@ -608,7 +611,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                 }
             }
-            Message("HE salido del while");
+//            Message("HE salido del while");
 //            // Cuando termine de recargar
 //            this.MySolveProblem();
 
