@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lab1;
+package starwars;
 //package starwars;
 
 import Environment.Environment;
@@ -25,102 +25,107 @@ import world.Perceptor;
 /**
  *
  * @author Ana García Muñoz (Creación del agente ITT_FULL deliberativo)
- * @author Moisés Noguera Carrillo (Añadidos algunos métodos que faltaban del 
+ * @author Moisés Noguera Carrillo (Añadidos algunos métodos que faltaban del
  * agente deliverativo al crear la clase)
  */
-public class ITT_FULL extends LARVAFirstAgent{
+public class ITT_FULL extends LARVAFirstAgent {
 
     private ACLMessage outboxRep;
 
+    Choice recAct = new Choice("RECHARGE");
+
     enum Status {
-        START, 
-        CHECKIN, 
-        OPENPROBLEM, 
-        SOLVEPROBLEM, 
-        CLOSEPROBLEM, 
-        CHECKOUT, 
+        START,
+        CHECKIN,
+        OPENPROBLEM,
+        SOLVEPROBLEM,
+        CLOSEPROBLEM,
+        CHECKOUT,
         EXIT,
         JOINSESSION
     }
-    Status myStatus;   
+    Status myStatus;
     String service = "PMANAGER",
-            problem, 
-            problemManager = "", 
+            problem,
+            problemManager = "",
             miDEST = "",
-            sessionManager,  
-            content, 
+            sessionManager,
+            content,
             sessionKey,
             report = "",
             ciudadActual,
-            ciudad_seleccionada = ""; 
+            ciudad_seleccionada = "";
     ACLMessage open, session, openRep;
     String[] contentTokens, ciudades;
     String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
-            "Wobani.Hon1"};
+        "Wobani.Hon1"};
     ArrayList<String> listaDEST;
 
-    
-        
     protected String whichWall, nextWhichwall;
     protected double distance, nextdistance;
     protected Point3D point, nextPoint;
-    
+
     Plan behaviour = null;
     Environment Ei, Ef;
     Choice a;
-    
+
     String goalActual;
     Boolean startedGoal = false;
-    
+
     public Plan AgPlan(Environment E, DecisionSet A) {
-        
+
         Ei = E.clone();
         Plan p = new Plan();
-        
-        for (int i = 0; i < Ei.getRange()/2 -2; i++) {
-            Ei.cache();
-            if (!Ve(Ei)) {
-                return null;
-            }
-            else if (G(Ei)) {
+        boolean recharge = needRecharge();
+
+        for (int i = 0; i < Ei.getRange() / 2 - 2; i++) {
+            if (recharge == true) {
+                p.add(recAct);
+                Info("El plan es: " + p);
                 return p;
-            }
-            else {
-                a = Ag(Ei, A);
-                if (a != null) {
-                    p.add(a);
-                    Ef = S(Ei, a);
-                    Ei = Ef;
-                }
-                else {
+
+            } else {
+                Ei.cache();
+                if (!Ve(Ei)) {
                     return null;
+                } else if (G(Ei)) {
+                    return p;
+                } else {
+                    a = Ag(Ei, A);
+                    if (a != null) {
+                        p.add(a);
+                        Ef = S(Ei, a);
+                        Ei = Ef;
+                    } else {
+                        return null;
+                    }
                 }
             }
         }
-        
+
         return p;
     }
-    
+
     @Override
     public void setup() {
-        
+
         this.enableDeepLARVAMonitoring();
         super.setup();
 
-       
         //this.activateSequenceDiagrams();
         this.deactivateSequenceDiagrams();
 
         logger.onEcho();
 
         logger.onTabular();
-                
+
         myStatus = Status.START;
         this.setupEnvironment();
         this.enableDeepLARVAMonitoring();
         A = new DecisionSet();
         A.addChoice(new Choice("MOVE")).
                 addChoice(new Choice("LEFT")).
+                //addChoice(new Choice("RECHARGE")).
                 addChoice(new Choice("RIGHT"));
         problem = this.inputSelect("Please, select the problem:", problems, " ");
     }
@@ -193,7 +198,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         outbox.setContent("Request open " + problem + " alias " + sessionAlias);
         this.LARVAsend(outbox);
         Info("Request opening problem " + problem + " to " + problemManager);
-        
+
         open = LARVAblockingReceive();
         Info(problemManager + " says: " + open.getContent());
         content = open.getContent();
@@ -209,39 +214,38 @@ public class ITT_FULL extends LARVAFirstAgent{
             return Status.CHECKOUT;
         }
     }
-    
+
     /**
-     * 
+     *
      * @author Moisés Noguera Carrillo
      */
     public ArrayList<String> getDroidShipsOfType(String type) {
-        
+
         ArrayList<String> droidShipList = new ArrayList<String>();
         ArrayList<String> droidShipListInSession = new ArrayList<String>();
-        
+
         droidShipList = this.DFGetAllProvidersOf("TYPE BB1F");
-        
+
         for (int i = 0; i < droidShipList.size(); i++) {
             if (this.DFHasService(droidShipList.get(i), sessionKey)) {
                 droidShipListInSession.add(droidShipList.get(i));
             }
         }
-        
+
         return droidShipListInSession;
-        
+
     }
-    
+
     /**
-     * 
+     *
      * @author Moisés Noguera Carrillo
      */
-    
     @Override
     public ACLMessage LARVAblockingReceive() {
-        
+
         boolean exit = false;
         ACLMessage res = null;
-        
+
         while (!exit) {
             res = super.LARVAblockingReceive();
             if (res.getContent().equals("TRANSPONDER") && res.getPerformative() == ACLMessage.QUERY_REF) {
@@ -249,16 +253,15 @@ public class ITT_FULL extends LARVAFirstAgent{
                 outbox.setPerformative(ACLMessage.INFORM);
                 outbox.setContent(this.Transponder());
                 LARVAsend(outbox);
-            }
-            else {
+            } else {
                 exit = true;
             }
         }
         return res;
     }
-    
+
     /**
-     * 
+     *
      * @author Javier Serrano Lucas
      * @author Ana García Muñoz (Parte de contacto con DEST)
      */
@@ -268,14 +271,12 @@ public class ITT_FULL extends LARVAFirstAgent{
         outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query CITIES session " + sessionKey);
         this.LARVAsend(outbox);
-        session  = LARVAblockingReceive();
+        session = LARVAblockingReceive();
         this.getEnvironment().setExternalPerceptions(session.getContent());
 
         //ciudades = getEnvironment().getExternalPerceptions().split(" "); 
         ciudades = getEnvironment().getCityList();
         ciudad_seleccionada = this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
-
-
 
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE ITT"});
@@ -292,7 +293,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.doPrepareNPC(1, DEST.class);
         this.doPrepareNPC(5, BB1F.class);
         DroidShip.Debug();
-        
+
         this.outbox = session.createReply();
         outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query missions session " + sessionKey);
@@ -301,48 +302,48 @@ public class ITT_FULL extends LARVAFirstAgent{
         session = LARVAblockingReceive();
         this.getEnvironment().setExternalPerceptions(session.getContent());
         this.MyReadPerceptions();
-        
+
         String mission = this.chooseMission();
         Info("Mission selected: " + mission);
         this.getEnvironment().setCurrentMission(mission);
-        
+
         // Conseguir DEST 
         listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
-        for(int i = 0 ; i < listaDEST.size(); i++){
-            if(this.DFHasService(listaDEST.get(i), sessionKey)){
+        for (int i = 0; i < listaDEST.size(); i++) {
+            if (this.DFHasService(listaDEST.get(i), sessionKey)) {
                 miDEST = listaDEST.get(i);
                 Alert("FOUND AGENT DEST" + miDEST);
             }
-        }   
-        
+        }
+
         Alert("FOUND " + this.getDroidShipsOfType("TYPE BB1F").size() + " OF TYPE BB1F");
 
         return Status.SOLVEPROBLEM;
     }
-    
+
     @Override
-    protected Choice Ag(Environment E, DecisionSet A){
-        if(G(E)){
+    protected Choice Ag(Environment E, DecisionSet A) {
+        if (G(E)) {
             return null;
-        } else if(A.isEmpty()){
+        } else if (A.isEmpty()) {
             return null;
         } else {
-            A = Prioritize(E,A);
+            A = Prioritize(E, A);
             whichWall = nextWhichwall;
             point = nextPoint;
             return A.BestChoice();
         }
     }
-    
+
     /**
-     * 
+     *
      * @author Moisés Noguera Carrillo (MOVEIN)
      * @author Javier Serrano Lucas (Estructura general del método)
      * @author Carlos Galán Carracedo (LIST)
      * @author Ana García Muñoz (REPORT)
      */
     public Status MySolveProblem() {
-        
+
         goalActual = E.getCurrentGoal();
         StringTokenizer tokens = new StringTokenizer(goalActual);
         String primeraPalabra = tokens.nextToken();
@@ -350,22 +351,24 @@ public class ITT_FULL extends LARVAFirstAgent{
         switch (primeraPalabra) {
             case "MOVEIN":
                 String ciudad = tokens.nextToken();
-                if (!startedGoal){
+                if (!startedGoal) {
                     //Solicitar navegación asistida a la ciudad
                     Info("Requesting AUTONAV to " + ciudad);
                     outbox = session.createReply();
                     outbox.setPerformative(ACLMessage.REQUEST);
                     outbox.setContent("Request course in " + ciudad + " session " + sessionKey);
+                    outbox.setConversationId(sessionKey);
+                    outbox.setProtocol("DROIDSHIP");
                     this.LARVAsend(outbox);
                     session = this.LARVAblockingReceive();
                     startedGoal = true;
-                } 
+                }
 
                 //Control de posibles errores
-                if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")){
+                if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")) {
                     Error("Could not enable AUTONAV to city due to " + session.getContent());
                     return Status.CLOSEPROBLEM;
-                } 
+                }
 
                 this.getEnvironment().setExternalPerceptions(session.getContent());
 
@@ -381,10 +384,9 @@ public class ITT_FULL extends LARVAFirstAgent{
                 if (behaviour == null || behaviour.isEmpty()) {
                     Alert("Found no plan to execute");
                     return Status.CLOSEPROBLEM;
-                }
-                else {
+                } else {
                     Info("Plan to execute: " + behaviour.toString());
-                    while(!behaviour.isEmpty()) {
+                    while (!behaviour.isEmpty()) {
                         a = behaviour.get(0);
                         behaviour.remove(0);
                         Info("Executing " + a);
@@ -398,20 +400,21 @@ public class ITT_FULL extends LARVAFirstAgent{
                 }
                 this.MyReadPerceptions();
                 break;
-                
+
             case "LIST":
                 String tipoPersona = tokens.nextToken();
                 myStatus = this.doQueryPeople(tipoPersona);
                 E.setNextGoal();
                 break;
-                
+
             case "REPORT":
-                report += ";"; 
-                
+                report += ";";
+
                 this.outboxRep = new ACLMessage();
                 outboxRep.setSender(getAID());
                 outboxRep.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
 //                outboxRep.setPerformative(userID);
+                outboxRep.setPerformative(ACLMessage.INFORM);
                 outboxRep.setContent(report);
                 this.LARVAsend(outboxRep);
                 Info("Sended report \"" + report + "\" to " + miDEST);
@@ -420,25 +423,26 @@ public class ITT_FULL extends LARVAFirstAgent{
                 Info(miDEST + " says: " + openRep.getContent());
                 content = openRep.getContent();
                 if (content.equals("Confirm")) {
-                    Message(miDEST + " has received the report" );
+                    Message(miDEST + " has received the report");
                 } else {
                     Error(content);
                     return Status.CLOSEPROBLEM;
                 }
                 E.setNextGoal();
                 break;
-                
+
             default:
                 return Status.CLOSEPROBLEM;
 
         }
-        
-        if (!E.getCurrentMission().isOver())
+
+        if (!E.getCurrentMission().isOver()) {
             return Status.SOLVEPROBLEM;
-        
+        }
+
         return Status.CLOSEPROBLEM;
     }
-    
+
     public boolean MyReadPerceptions() {
         Info("Reading perceptions...");
         outbox = session.createReply();
@@ -454,7 +458,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         Info(this.easyPrintPerceptions());
         return true;
     }
-     
+
     public String easyPrintPerceptions() {
         String res;
         int matrix[][];
@@ -522,7 +526,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         res += "Decision Set: " + A.toString() + "\n";
         return res;
     }
-    
+
     protected String printValue(int v) {
         if (v == Perceptor.NULLREAD) {
             return "XXX ";
@@ -538,25 +542,96 @@ public class ITT_FULL extends LARVAFirstAgent{
             return String.format("%05.2f ", v);
         }
     }
-    
-    
-    public boolean MyExecuteAction(String action) {
-        Info("Executing action " + action);
+
+    /**
+     *
+     * @author Ana García Muñoz
+     */
+    public boolean needRecharge() {
         outbox = session.createReply();
-        outbox.setPerformative(ACLMessage.REQUEST);
-        outbox.setContent("Request execute " + action + " session " + sessionKey);
+        outbox.setContent("Query sensors session " + sessionKey);
+        outbox.setPerformative(ACLMessage.QUERY_REF);
+        outbox.setConversationId(sessionKey);
+        outbox.setProtocol("DROIDSHIP");
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
-        if (!session.getContent().startsWith("Inform")) {
-            Error("Unable to execute action " + action + " due to " + session.getContent());
-            return false;
+        getEnvironment().setExternalPerceptions(session.getContent());
+
+        int energy = getEnvironment().getEnergy();
+        boolean needed = false;
+
+        if (energy < 150 && energy > 90) {
+            needed = true;
+            //Message("RECARGA PORQUE TIENES " + energy + " DE ENERGÍA");
         }
+
+        return needed;
+    }
+
+    /**
+     * @author Ana García Muñoz (tratar la accion RECHARGE)
+     */
+    public boolean MyExecuteAction(String action) {
+        if (action == "RECHARGE") {
+            ArrayList<String> listaRec = getDroidShipsOfType("TYPE BB1F");
+            String agRecarga = "";
+            boolean aceptado = false;
+            int i = 0;
+            while (!aceptado) {
+                this.outbox = new ACLMessage();
+                outbox.setSender(getAID());
+                outbox.addReceiver(new AID(listaRec.get(i), AID.ISLOCALNAME));
+                outbox.setContent("REFILL");
+                outbox.setPerformative(ACLMessage.REQUEST);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
+                outbox.setReplyWith("Recharge" + i);
+                this.LARVAsend(outbox);
+
+                open = LARVAblockingReceive();
+                Info(listaRec.get(i) + " says: " + open.getContent());
+                if (open.getPerformative() == ACLMessage.AGREE) {
+                    agRecarga = listaRec.get(i);
+                    Message("El agente " + agRecarga + " viene a ayudarme");
+                    open = LARVAblockingReceive();
+                    if (!(open.getPerformative() == ACLMessage.INFORM)){
+                        Info("ERROR: " + open.getContent());
+                        return false;
+                    }
+                    aceptado = true;
+                } else {
+                    if (i == listaRec.size()) {
+                        i = 0;
+                    } else {
+                        i += 1;
+                    }
+
+                }
+            }
+            Message("HE salido del while");
+//            // Cuando termine de recargar
+//            this.MySolveProblem();
+
+        } else {
+
+            Info("Executing action " + action);
+            outbox = session.createReply();
+            outbox.setPerformative(ACLMessage.REQUEST);
+            outbox.setContent("Request execute " + action + " session " + sessionKey);
+            this.LARVAsend(outbox);
+            session = this.LARVAblockingReceive();
+            if (!session.getContent().startsWith("Inform")) {
+                Error("Unable to execute action " + action + " due to " + session.getContent());
+                return false;
+            }
+        }
+
         return true;
     }
 
     /**
-     * 
-     * @author Carlos Galán Carracedo (añadida la destrucción del NPC) 
+     *
+     * @author Carlos Galán Carracedo (añadida la destrucción del NPC)
      */
     public Status MyCloseProblem() {
         outbox = open.createReply();
@@ -569,32 +644,31 @@ public class ITT_FULL extends LARVAFirstAgent{
         this.doDestroyNPC();
         return Status.CHECKOUT;
     }
-    
-    protected double goAhead(Environment E, Choice a){
-        if(a.getName().equals("MOVE")){
-            return U(S(E,a));  
-        } else { 
-            return U(S(E,a), new Choice("MOVE"));  
+
+    protected double goAhead(Environment E, Choice a) {
+        if (a.getName().equals("MOVE")) {
+            return U(S(E, a));
+        } else {
+            return U(S(E, a), new Choice("MOVE"));
         }
     }
-    
+
     /**
-     * 
+     *
      * @author Carlos Galán Carracedo
-     * @author Moisés Noguera Carrillo
-     * Añadida heurística para que en el caso de que haya un obstáculo
-     * y el objetivo esté a la izquierda el agente rodee por la izquierda y 
-     * en el caso de que esté a la derecha lo haga por ese lado. Anteriormente
-     * siempre se rodeaba por la derecha.
+     * @author Moisés Noguera Carrillo Añadida heurística para que en el caso de
+     * que haya un obstáculo y el objetivo esté a la izquierda el agente rodee
+     * por la izquierda y en el caso de que esté a la derecha lo haga por ese
+     * lado. Anteriormente siempre se rodeaba por la derecha.
      */
     public double goAvoid(Environment E, Choice a) {
-        
+
         if (E.isTargetRight()) {
             if (a.getName().equals("RIGHT")) {
                 nextWhichwall = "LEFT";
                 nextdistance = E.getDistance();
                 nextPoint = E.getGPS();
-            return Choice.ANY_VALUE;
+                return Choice.ANY_VALUE;
             }
         } else {
             if (a.getName().equals("LEFT")) {
@@ -605,41 +679,39 @@ public class ITT_FULL extends LARVAFirstAgent{
             }
         }
 
-                
         return Choice.MAX_UTILITY;
     }
-    
+
     /**
-     * 
+     *
      * @author Moisés Noguera Carrillo
      */
     public double turnBack(Environment E, Choice a) {
         if (a.getName().equals("RIGHT")) {
             return Choice.ANY_VALUE;
-        }
-        else
+        } else {
             return Choice.MAX_UTILITY;
+        }
     }
-    
+
     @Override
     protected double U(Environment E, Choice a) {
         if (whichWall.equals("LEFT")) {
             return goFollowWallLeft(E, a);
-        } else if (whichWall.equals("RIGHT")){
+        } else if (whichWall.equals("RIGHT")) {
             return goFollowWallRight(E, a);
         } else if (!E.isFreeFront()) {
             return goAvoid(E, a);
         } else if (E.isTargetBack()) {
             return turnBack(E, new Choice("RIGHT"));
-        }
-        else {
+        } else {
             return goAhead(E, a);
         }
     }
 
     public double goFollowWallLeft(Environment E, Choice a) {
-         Info("Siguiendo pared izquierda");
-         if (E.isFreeFrontLeft()) {
+        Info("Siguiendo pared izquierda");
+        if (E.isFreeFrontLeft()) {
             return goTurnOnWallLeft(E, a);
         } else if (E.isTargetFrontRight()
                 && E.isFreeFrontRight()
@@ -652,10 +724,10 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
 
     }
-    
+
     public double goFollowWallRight(Environment E, Choice a) {
-         Info("Siguiendo pared derecha");
-         if (E.isFreeFrontRight()) {
+        Info("Siguiendo pared derecha");
+        if (E.isFreeFrontRight()) {
             return goTurnOnWallRight(E, a);
         } else if (E.isTargetFrontLeft()
                 && E.isFreeFrontLeft()
@@ -683,7 +755,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         return Choice.MAX_UTILITY;
 
     }
-    
+
     public double goTurnOnWallRight(Environment E, Choice a) {
         if (a.getName().equals("RIGHT")) {
             return Choice.ANY_VALUE;
@@ -698,7 +770,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
         return Choice.MAX_UTILITY;
     }
-    
+
     public double goRevolveWallRight(Environment E, Choice a) {
         if (a.getName().equals("LEFT")) {
             return Choice.ANY_VALUE;
@@ -713,7 +785,7 @@ public class ITT_FULL extends LARVAFirstAgent{
         }
         return Choice.MAX_UTILITY;
     }
-    
+
     public double goStopWallRight(Environment E, Choice a) {
         if (a.getName().equals("LEFT")) {
             this.resetAutoNAV();
@@ -727,39 +799,37 @@ public class ITT_FULL extends LARVAFirstAgent{
         nextdistance = distance = Choice.MAX_UTILITY;
         nextPoint = point = null;
     }
-    
+
     /**
-    * @author Carlos Galán Carracedo
-    * @author Ana García Múñoz (parte asociada al mensaje de REPORT)
-    */
-    protected Status doQueryPeople(String type){
-        Info("Querying people "+type);
+     * @author Carlos Galán Carracedo
+     * @author Ana García Múñoz (parte asociada al mensaje de REPORT)
+     */
+    protected Status doQueryPeople(String type) {
+        Info("Querying people " + type);
         outbox = session.createReply();
         outbox.setPerformative(ACLMessage.QUERY_REF);
-        outbox.setContent("Query "+type.toUpperCase()+" session " + sessionKey);
+        outbox.setContent("Query " + type.toUpperCase() + " session " + sessionKey);
         this.LARVAsend(outbox);
-        session= LARVAblockingReceive();
+        session = LARVAblockingReceive();
         getEnvironment().setExternalPerceptions(session.getContent());
-        
-        if(report == ""){
+
+        if (report == "") {
             report += "REPORT;" + getEnvironment().getCurrentCity() + " " + type.toLowerCase() + " " + getEnvironment().getPeople().length;
             ciudadActual = getEnvironment().getCurrentCity();
-        }else{
-            if (!getEnvironment().getCurrentCity().equals(ciudadActual)){
+        } else {
+            if (!getEnvironment().getCurrentCity().equals(ciudadActual)) {
                 report += ";" + getEnvironment().getCurrentCity();
                 ciudadActual = getEnvironment().getCurrentCity();
             }
 
-            report += " " + type.toLowerCase() + " " + getEnvironment().getPeople().length;                
+            report += " " + type.toLowerCase() + " " + getEnvironment().getPeople().length;
         }
 
 //        Message("Found "+getEnvironment().getPeople().length+" "+type+" in "
 //                +getEnvironment().getCurrentCity());
 //        getEnvironment().getCurrentMission().nextGoal();
-        
 //        Message(report);
         return Status.SOLVEPROBLEM;
     }
-    
-}
 
+}
