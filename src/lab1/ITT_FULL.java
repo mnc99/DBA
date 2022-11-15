@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package starwars;
+package lab1;
 //package starwars;
 
 import Environment.Environment;
@@ -55,7 +55,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             report = "",
             ciudadActual,
             ciudad_seleccionada = "";
-    ACLMessage open, session, openRep;
+    ACLMessage open, session, openRep, rechargeResp;
     String[] contentTokens, ciudades;
     String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
         "Wobani.Hon1"};
@@ -199,6 +199,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         outbox.setSender(getAID());
         outbox.addReceiver(new AID(problemManager, AID.ISLOCALNAME));
         outbox.setContent("Request open " + problem + " alias " + sessionAlias);
+        
         this.LARVAsend(outbox);
         Info("Request opening problem " + problem + " to " + problemManager);
 
@@ -347,9 +348,13 @@ public class ITT_FULL extends LARVAFirstAgent {
      */
     public Status MySolveProblem() {
 
+        String primeraPalabra = "";
+        
         goalActual = E.getCurrentGoal();
         StringTokenizer tokens = new StringTokenizer(goalActual);
-        String primeraPalabra = tokens.nextToken();
+        
+        if (!goalActual.isEmpty())
+            primeraPalabra = tokens.nextToken();
         
         switch (primeraPalabra) {
             case "MOVEIN":
@@ -441,6 +446,9 @@ public class ITT_FULL extends LARVAFirstAgent {
 
         if (!E.getCurrentMission().isOver()) {
             return Status.SOLVEPROBLEM;
+        }
+        else {
+            Alert("Problem " + problem + " is solved!" );
         }
 
         return Status.CLOSEPROBLEM;
@@ -591,14 +599,14 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox.setReplyWith("Recharge" + i);
                 this.LARVAsend(outbox);
 
-                open = LARVAblockingReceive();
-                Info(listaRec.get(i) + " says: " + open.getContent());
-                if (open.getPerformative() == ACLMessage.AGREE) {
+                rechargeResp = LARVAblockingReceive();
+                Info(listaRec.get(i) + " says: " + rechargeResp.getContent());
+                if (rechargeResp.getPerformative() == ACLMessage.AGREE) {
                     agRecarga = listaRec.get(i);
                     Message("El agente " + agRecarga + " viene a ayudarme");
-                    open = LARVAblockingReceive();
-                    if (!(open.getPerformative() == ACLMessage.INFORM)){
-                        Info("ERROR: " + open.getContent());
+                    rechargeResp = LARVAblockingReceive();
+                    if (!(rechargeResp.getPerformative() == ACLMessage.INFORM)){
+                        Info("ERROR: " + rechargeResp.getContent());
                         return false;
                     }
                     aceptado = true;
@@ -640,6 +648,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         outbox = open.createReply();
         outbox.setPerformative(ACLMessage.CANCEL);
         outbox.setContent("Cancel session " + sessionKey);
+        outbox.setConversationId(sessionKey);
         Info("Closing problem " + problem + ", session " + sessionKey);
         this.LARVAsend(outbox);
         inbox = LARVAblockingReceive();
