@@ -9,6 +9,7 @@ package lab1;
 import Environment.Environment;
 import agents.BB1F;
 import agents.DEST;
+import agents.MTT;
 import agents.DroidShip;
 import agents.LARVAFirstAgent;
 import ai.Choice;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 import tools.emojis;
 import world.Perceptor;
+import java.util.Random;
 
 /**
  *
@@ -54,12 +56,14 @@ public class ITT_FULL extends LARVAFirstAgent {
             sessionKey,
             report = "",
             ciudadActual,
+            ciudadDest,
             ciudad_seleccionada = "";
-    ACLMessage open, session, openRep, rechargeResp;
+    ACLMessage open, session, openRep, rechargeResp,backupResp, respDest;
     String[] contentTokens, ciudades;
     String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
         "Wobani.Hon1"};
     ArrayList<String> listaDEST;
+    Random aleatorio = new Random();
 
     protected String whichWall, nextWhichwall;
     protected double distance, nextdistance;
@@ -71,6 +75,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
     String goalActual;
     Boolean startedGoal = false;
+    Boolean sendTransponderReq = false;
     
     /**
     * @author Ana García Muñoz (needRecharge)
@@ -228,7 +233,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         ArrayList<String> droidShipList = new ArrayList<String>();
         ArrayList<String> droidShipListInSession = new ArrayList<String>();
 
-        droidShipList = this.DFGetAllProvidersOf("TYPE BB1F");
+        droidShipList = this.DFGetAllProvidersOf(type);
 
         for (int i = 0; i < droidShipList.size(); i++) {
             if (this.DFHasService(droidShipList.get(i), sessionKey)) {
@@ -295,7 +300,8 @@ public class ITT_FULL extends LARVAFirstAgent {
         }
 
         this.doPrepareNPC(1, DEST.class);
-        this.doPrepareNPC(5, BB1F.class);
+        this.doPrepareNPC(1, BB1F.class);
+        this.doPrepareNPC(1,MTT.class);
         DroidShip.Debug();
 
         this.outbox = session.createReply();
@@ -341,9 +347,9 @@ public class ITT_FULL extends LARVAFirstAgent {
 
     /**
      *
-     * @author Moisés Noguera Carrillo (MOVEIN)
-     * @author Javier Serrano Lucas (Estructura general del método)
-     * @author Carlos Galán Carracedo (LIST)
+     * @author Moisés Noguera Carrillo (MOVEIN, MOVEBY)
+     * @author Javier Serrano Lucas (Estructura general del método, CAPTURE)
+     * @author Carlos Galán Carracedo (LIST, MOVEBY)
      * @author Ana García Muñoz (REPORT)
      */
     public Status MySolveProblem() {
@@ -351,6 +357,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         String primeraPalabra = "";
         
         goalActual = E.getCurrentGoal();
+        Info("CURRENT GOAL IS " + goalActual);
         StringTokenizer tokens = new StringTokenizer(goalActual);
         
         if (!goalActual.isEmpty())
@@ -437,6 +444,166 @@ public class ITT_FULL extends LARVAFirstAgent {
                     return Status.CLOSEPROBLEM;
                 }
                 E.setNextGoal();
+                break;
+            case "CAPTURE":
+                int numCapturas = Integer.parseInt(tokens.nextToken());
+                String tipo = tokens.nextToken();
+                myStatus = this.doQueryPeople(tipo);
+                //if(tipo == "JEDI"){
+                    String[] personasCapturar = this.getEnvironment().getPeople();
+                    String ciudadCaptura = tokens.nextToken();
+                    String agBackup = "";
+                    ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
+                    boolean aceptado = false;
+                    int i = 0;
+                    while(!aceptado){
+                        this.outbox = new ACLMessage();
+                        outbox.setSender(getAID());
+                        outbox.addReceiver(new AID(listaApoyoCaptura.get(i), AID.ISLOCALNAME));
+                        outbox.setContent("BACKUP");
+                        outbox.setPerformative(ACLMessage.REQUEST);
+                        outbox.setConversationId(sessionKey);
+                        outbox.setProtocol("DROIDSHIP");
+                        outbox.setReplyWith("BackUp" + i);
+                        this.LARVAsend(outbox);
+                        
+                        backupResp = LARVAblockingReceive();
+                        Info(listaApoyoCaptura.get(i) + " says: " + backupResp.getContent());
+                        if (backupResp.getPerformative() == ACLMessage.AGREE) {
+                            agBackup = listaApoyoCaptura.get(i);
+                            //Message("El agente " + agBackup + " viene a ayudarme");
+                            backupResp = LARVAblockingReceive();
+                            if (!(backupResp.getPerformative() == ACLMessage.INFORM)){
+                                Info("ERROR: " + backupResp.getContent());
+                            }
+                            else{
+                                aceptado = true;
+                                Info("Aceptado");
+                            }
+                        }
+                        else{
+                            if (i == listaApoyoCaptura.size()) {
+                                i = 0;
+                            }
+                            else {
+                                i += 1;
+                            } 
+                        }
+                    
+                    }
+                    
+                    Info("FUERAAAAAAAAAAAA");
+                    
+                    for(int k = 0; k < numCapturas;k++){
+                    
+                        outbox = session.createReply();
+                        outbox.setPerformative(ACLMessage.REQUEST);
+                        outbox.setContent("Request capture "+ personasCapturar[k] + " session " + sessionKey);
+                        this.LARVAsend(outbox);
+                        session = this.LARVAblockingReceive();
+                        if (!session.getContent().startsWith("Inform")) {
+                            Error("Unable to execute action capture" + " due to " + session.getContent());
+                        }
+                    }
+                    
+                    this.outbox = new ACLMessage();
+                        outbox.setSender(getAID());
+                        outbox.addReceiver(new AID(agBackup, AID.ISLOCALNAME));
+                        outbox.setContent("BACKUP");
+                        outbox.setPerformative(ACLMessage.CANCEL);
+                        outbox.setConversationId(sessionKey);
+                        outbox.setProtocol("DROIDSHIP");
+                        outbox.setReplyWith("BackUp" + i);
+                        this.LARVAsend(outbox);
+                //}
+                E.setNextGoal();
+                break;
+                
+            case "MOVEBY":
+
+                if (!sendTransponderReq) {
+                    outbox = new ACLMessage();
+                    outbox.setSender(getAID());
+                    outbox.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
+                    outbox.setContent("TRANSPONDER");
+                    outbox.setPerformative(ACLMessage.QUERY_REF);
+                    outbox.setConversationId(sessionKey);
+                    //Generar número aleatorio en el replywith
+                    outbox.setReplyWith("id-" + aleatorio.nextInt(1000000));
+                    outbox.setProtocol("DROIDSHIP");
+                    this.LARVAsend(outbox);
+
+                    respDest = this.LARVAblockingReceive();
+
+                    if (respDest.getPerformative() != ACLMessage.INFORM) {
+                        Error("Error: Transponder message not recieved dut to " + respDest.getContent());
+                        return Status.CLOSEPROBLEM;
+                    }
+
+                    String aux;
+                    String respuesta = respDest.getContent();
+                    String[] prueba = respuesta.split("/");
+                    Info(prueba[3]);
+                    // Obtener la ciudad donde se encuentra DEST
+                    prueba = prueba[3].split(" ");
+                    ciudadDest = prueba[2];
+
+                    Alert("DEST is in " + ciudadDest);
+                    sendTransponderReq = true;
+                }
+                
+                // Solicitar AUTONAV hasta la ciudad del DEST
+                if (!startedGoal) {
+                    //Solicitar navegación asistida a la ciudad
+                    Info("Requesting AUTONAV to " + ciudadDest);
+                    outbox = session.createReply();
+                    outbox.setPerformative(ACLMessage.REQUEST);
+                    outbox.setContent("Request course in " + ciudadDest + " session " + sessionKey);
+                    outbox.setConversationId(sessionKey);
+                    outbox.setProtocol("DROIDSHIP");
+                    outbox.setReplyWith("id-" + aleatorio.nextInt(1000000));
+                    this.LARVAsend(outbox);
+                    session = this.LARVAblockingReceive();
+                    startedGoal = true;
+                }
+
+                //Control de posibles errores
+                if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")) {
+                    Error("Could not enable AUTONAV to city due to " + session.getContent());
+                    return Status.CLOSEPROBLEM;
+                }
+
+                this.getEnvironment().setExternalPerceptions(session.getContent());
+
+                // Viajar hasta la ciudad del DEST
+                if (G(E)) {
+                    Info("The goal " + E.getCurrentGoal() + " is solved");
+                    startedGoal = false;
+                    E.setNextGoal();
+                    return Status.SOLVEPROBLEM;
+                }
+
+                behaviour = this.AgPlan(E, A);
+
+                if (behaviour == null || behaviour.isEmpty()) {
+                    Alert("Found no plan to execute");
+                    return Status.CLOSEPROBLEM;
+                } else {
+                    Info("Plan to execute: " + behaviour.toString());
+                    while (!behaviour.isEmpty()) {
+                        a = behaviour.get(0);
+                        behaviour.remove(0);
+                        Info("Executing " + a);
+                        this.MyExecuteAction(a.getName());
+
+                        if (!Ve(E)) {
+                            this.Error("The agent is not alive " + E.getStatus());
+                            return Status.CLOSEPROBLEM;
+                        }
+                    }
+                }
+                this.MyReadPerceptions();
+                
                 break;
 
             default:
@@ -603,7 +770,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 Info(listaRec.get(i) + " says: " + rechargeResp.getContent());
                 if (rechargeResp.getPerformative() == ACLMessage.AGREE) {
                     agRecarga = listaRec.get(i);
-                    Message("El agente " + agRecarga + " viene a ayudarme");
+                    //Message("El agente " + agRecarga + " viene a ayudarme");
                     rechargeResp = LARVAblockingReceive();
                     if (!(rechargeResp.getPerformative() == ACLMessage.INFORM)){
                         Info("ERROR: " + rechargeResp.getContent());
