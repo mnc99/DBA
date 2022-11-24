@@ -59,7 +59,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             ciudadDest,
             ciudad_seleccionada = "";
     ACLMessage open, session, openRep, rechargeResp,backupResp, respDest;
-    String[] contentTokens, ciudades;
+    String[] contentTokens, ciudades, personasCapturar;
     String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
         "Wobani.Hon1"};
     ArrayList<String> listaDEST;
@@ -349,7 +349,7 @@ public class ITT_FULL extends LARVAFirstAgent {
      *
      * @author Moisés Noguera Carrillo (MOVEIN, MOVEBY)
      * @author Javier Serrano Lucas (Estructura general del método, CAPTURE)
-     * @author Carlos Galán Carracedo (LIST, MOVEBY)
+     * @author Carlos Galán Carracedo (LIST, MOVEBY, TRANSFER)
      * @author Ana García Muñoz (REPORT)
      */
     public Status MySolveProblem() {
@@ -450,7 +450,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 String tipo = tokens.nextToken();
                 myStatus = this.doQueryPeople(tipo);
                 //if(tipo == "JEDI"){
-                    String[] personasCapturar = this.getEnvironment().getPeople();
+                    personasCapturar = this.getEnvironment().getPeople();
                     String ciudadCaptura = tokens.nextToken();
                     String agBackup = "";
                     ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
@@ -604,6 +604,39 @@ public class ITT_FULL extends LARVAFirstAgent {
                 }
                 this.MyReadPerceptions();
                 
+                break;
+                
+            case "TRANSFER":
+                
+                Boolean jediTransferido;
+                String jedisCapturados[] = this.getEnvironment().getCargo();
+                int numJedis = this.getEnvironment().getPayload();
+                
+                Alert("JEDIS TO TRANSFER: " + numJedis);
+                
+                for(i=0; i<numJedis; i++){
+                        jediTransferido = false;
+
+                        while(!jediTransferido){
+                                this.outbox = new ACLMessage();
+                                outbox.setSender(getAID());
+                                outbox.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
+                                outbox.setContent("TRANSFER " + jedisCapturados[i]);
+                                outbox.setPerformative(ACLMessage.QUERY_REF);
+                                outbox.setConversationId(sessionKey);
+                                outbox.setProtocol("DROIDSHIP");
+                                outbox.setReplyWith("id-" + aleatorio.nextInt(1000000));
+                                this.LARVAsend(outbox);
+
+                                inbox = this.LARVAblockingReceive();
+
+                                if(inbox.getPerformative() == ACLMessage.INFORM)
+                                        jediTransferido = true;
+                        }
+                }
+
+                E.setNextGoal();
+
                 break;
 
             default:
