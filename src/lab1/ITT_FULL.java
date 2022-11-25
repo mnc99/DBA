@@ -120,8 +120,8 @@ public class ITT_FULL extends LARVAFirstAgent {
         this.enableDeepLARVAMonitoring();
         super.setup();
 
-        //this.activateSequenceDiagrams();
-        this.deactivateSequenceDiagrams();
+        this.activateSequenceDiagrams();
+//        this.deactivateSequenceDiagrams();
 
         logger.onEcho();
 
@@ -225,7 +225,9 @@ public class ITT_FULL extends LARVAFirstAgent {
     }
 
     /**
-     *
+     * Returns an ArrayList with the names of all the NPC of the given
+     * type in the session
+     * 
      * @author Moisés Noguera Carrillo
      */
     public ArrayList<String> getDroidShipsOfType(String type) {
@@ -246,7 +248,7 @@ public class ITT_FULL extends LARVAFirstAgent {
     }
 
     /**
-     *
+     * Override the method to send transponder information
      * @author Moisés Noguera Carrillo
      */
     @Override
@@ -428,7 +430,6 @@ public class ITT_FULL extends LARVAFirstAgent {
                 this.outboxRep = new ACLMessage();
                 outboxRep.setSender(getAID());
                 outboxRep.addReceiver(new AID(miDEST, AID.ISLOCALNAME));
-//                outboxRep.setPerformative(userID);
                 outboxRep.setPerformative(ACLMessage.INFORM);
                 outboxRep.setContent(report);
                 this.LARVAsend(outboxRep);
