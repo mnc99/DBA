@@ -485,6 +485,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                         else{
                             if (i == listaApoyoCaptura.size()) {
                                 i = 0;
+                                LARVAwait(5000);
                             }
                             else {
                                 i += 1;
