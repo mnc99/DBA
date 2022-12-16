@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lab1;
+package starwars;
 //package starwars;
 
 import Environment.Environment;
@@ -60,8 +60,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             ciudad_seleccionada = "";
     ACLMessage open, session, openRep, rechargeResp,backupResp, respDest;
     String[] contentTokens, ciudades, personasCapturar;
-    String[] problems = {"Wobani.Apr1", "Wobani.Not1", "Wobani.Sob1",
-        "Wobani.Hon1"};
+    String[] problems = {"CoruscantSingle", "CoruscantApr", "CoruscantNot", "CoruscantSob", "CoruscantHon"};
     ArrayList<String> listaDEST;
     Random aleatorio = new Random();
 
