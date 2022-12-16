@@ -286,7 +286,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
         //ciudades = getEnvironment().getExternalPerceptions().split(" "); 
         ciudades = getEnvironment().getCityList();
-        ciudad_seleccionada = this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
+        ciudad_seleccionada = "Whitehorse";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
 
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE ITT"});
