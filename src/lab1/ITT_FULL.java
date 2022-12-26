@@ -59,7 +59,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             ciudadActual,
             ciudadDest,
             ciudad_seleccionada = "";
-    ACLMessage open, session, openRep, rechargeResp,backupResp, respDest;
+    ACLMessage open, session, openRep, rechargeResp,backupResp, respDest, controller;
     String[] contentTokens, ciudades, personasCapturar;
     String[] problems = {"CoruscantSingle", "CoruscantApr", "CoruscantNot", "CoruscantSob", "CoruscantHon"};
     ArrayList<String> listaDEST;
@@ -76,6 +76,9 @@ public class ITT_FULL extends LARVAFirstAgent {
     String goalActual;
     Boolean startedGoal = false;
     Boolean sendTransponderReq = false;
+    
+    String agBackup = "";
+    int i = 0;
     
     /**
     * @author Ana García Muñoz (needRecharge)
@@ -256,10 +259,13 @@ public class ITT_FULL extends LARVAFirstAgent {
 
     }
     
+    /**
+     * Get the session key and session manager of the actual session
+     * 
+     * @author Moisés Noguera Carrillo
+     */
     public void getSessionKey(String type) {
         ArrayList<String> sessionManagers = getDroidShipsOfType("SESSION MANAGER");
-        
-        Info("SOLICITANDO TODOS LOS SESSION MANAGERS ACTIVOS");
         
         for (int i = 0; i < sessionManagers.size(); i++) {
             if (this.DFHasService(sessionManagers.get(i), sessionAlias)) {
@@ -269,7 +275,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         
         ArrayList<String> services = this.DFGetAllServicesProvidedBy(sessionManager);
         
-        Info("Session Manager" + sessionManager);
+        Info("Session Manager: " + sessionManager);
         for (String service : services) {
             if (service.startsWith("SESSION::")) {
                 sessionKey = service;
@@ -310,12 +316,11 @@ public class ITT_FULL extends LARVAFirstAgent {
     public Status MyJoinSession() {
         ciudad_seleccionada = "Whitehorse";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
 
-        // No buscar los type SSD. Hay que pedirlo al SM. Se buscan todos los
-        // SM y se coge el que tiene el alias definido. A ese se pregunta por el sessionKey.
+        // Obtener la sessionKey y el SM de la sesión actual
         getSessionKey("SESSION MANAGER");
         
         this.resetAutoNAV();
-        this.DFAddMyServices(new String[]{"TYPE ITT"});
+        this.DFAddMyServices(new String[]{"TYPE ITT", "TEAM "+sessionAlias});
         outbox = new ACLMessage();
         outbox.setSender(getAID());
         outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
@@ -339,27 +344,21 @@ public class ITT_FULL extends LARVAFirstAgent {
         outbox.setPerformative(ACLMessage.QUERY_REF);
         outbox.setContent("Query missions session " + sessionKey);
         this.LARVAsend(outbox);
-
         session = LARVAblockingReceive();
         this.getEnvironment().setExternalPerceptions(session.getContent());
         this.MyReadPerceptions();
 
-        String mission = this.chooseMission();
-        Info("Mission selected: " + mission);
-        this.getEnvironment().setCurrentMission(mission);
+//        String mission = this.chooseMission();
+//        Info("Mission selected: " + mission);
+//        this.getEnvironment().setCurrentMission(mission);
+//
+//        // Conseguir DEST 
+        
+//
+//        Alert("FOUND " + this.getDroidShipsOfType("TYPE BB1F").size() + " OF TYPE BB1F");
+        Info("WATING FOR MISSION...");
 
-        // Conseguir DEST 
-        listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
-        for (int i = 0; i < listaDEST.size(); i++) {
-            if (this.DFHasService(listaDEST.get(i), sessionKey)) {
-                miDEST = listaDEST.get(i);
-                Alert("FOUND AGENT DEST" + miDEST);
-            }
-        }
-
-        Alert("FOUND " + this.getDroidShipsOfType("TYPE BB1F").size() + " OF TYPE BB1F");
-
-        return Status.SOLVEPROBLEM;
+        return Status.SELECTMISSION;
     }
 
     @Override
@@ -380,13 +379,17 @@ public class ITT_FULL extends LARVAFirstAgent {
      *
      * @author Javier Serrano Lucas 
      */
-    @Override
     public Status SelectMission(){
+        //LARVAblockingReceive();
         controller = LARVAblockingReceive();
         if(controller.getPerformative() == ACLMessage.REQUEST){
             E.makeCurrentMission(controller.getContent());
             this.MyReadPerceptions();
             resetAutoNAV();
+            Info("GOALS OF THE MISSION:");
+            for (String goal : E.getMissionGoals(E.getCurrentMission().getName())) {
+                Info("GOAL: " + goal);
+            }
             return Status.SOLVEPROBLEM;
         } else if (controller.getPerformative() == ACLMessage.CANCEL){
             return Status.CHECKOUT;
@@ -408,14 +411,19 @@ public class ITT_FULL extends LARVAFirstAgent {
         
         goalActual = E.getCurrentGoal();
         Info("CURRENT GOAL IS " + goalActual);
-        StringTokenizer tokens = new StringTokenizer(goalActual);
+        //StringTokenizer tokens = new StringTokenizer(goalActual);
+        String[] tokens = goalActual.split(" ");
         
         if (!goalActual.isEmpty())
-            primeraPalabra = tokens.nextToken();
+            primeraPalabra = tokens[0];
         
         switch (primeraPalabra) {
             case "MOVEIN":
-                String ciudad = tokens.nextToken();
+                String ciudad = tokens[1];
+                if (tokens.length == 3) {
+                    ciudad = ciudad + " " + tokens[2];
+                }
+                
                 if (!startedGoal) {
                     //Solicitar navegación asistida a la ciudad
                     Info("Requesting AUTONAV to " + ciudad);
@@ -432,7 +440,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 //Control de posibles errores
                 if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")) {
                     Error("Could not enable AUTONAV to city due to " + session.getContent());
-                    return Status.CLOSEPROBLEM;
+                    return Status.CHECKOUT;
                 }
 
                 this.getEnvironment().setExternalPerceptions(session.getContent());
@@ -448,7 +456,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                 if (behaviour == null || behaviour.isEmpty()) {
                     Alert("Found no plan to execute");
-                    return Status.CLOSEPROBLEM;
+                    return Status.CHECKOUT;
                 } else {
                     Info("Plan to execute: " + behaviour.toString());
                     while (!behaviour.isEmpty()) {
@@ -459,7 +467,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                         if (!Ve(E)) {
                             this.Error("The agent is not alive " + E.getStatus());
-                            return Status.CLOSEPROBLEM;
+                            return Status.CHECKOUT;
                         }
                     }
                 }
@@ -467,7 +475,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 break;
 
             case "LIST":
-                String tipoPersona = tokens.nextToken();
+                String tipoPersona = tokens[1];
                 myStatus = this.doQueryPeople(tipoPersona);
                 E.setNextGoal();
                 break;
@@ -490,57 +498,100 @@ public class ITT_FULL extends LARVAFirstAgent {
                     Message(miDEST + " has received the report");
                 } else {
                     Error(content);
-                    return Status.CLOSEPROBLEM;
+                    return Status.CHECKOUT;
+                }
+                E.setNextGoal();
+                break;
+            case "REQUEST":
+                
+                ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
+                boolean aceptado = false;
+                
+                while(!aceptado){
+                    this.outbox = new ACLMessage();
+                    outbox.setSender(getAID());
+                    outbox.addReceiver(new AID(listaApoyoCaptura.get(i), AID.ISLOCALNAME));
+                    outbox.setContent("BACKUP");
+                    outbox.setPerformative(ACLMessage.REQUEST);
+                    outbox.setConversationId(sessionKey);
+                    outbox.setProtocol("DROIDSHIP");
+                    outbox.setReplyWith("BackUp" + i);
+                    this.LARVAsend(outbox);
+
+                    backupResp = LARVAblockingReceive();
+                    Info(listaApoyoCaptura.get(i) + " says: " + backupResp.getContent());
+                    if (backupResp.getPerformative() == ACLMessage.AGREE) {
+                        agBackup = listaApoyoCaptura.get(i);
+                        //Message("El agente " + agBackup + " viene a ayudarme");
+                        backupResp = LARVAblockingReceive();
+                        if (!(backupResp.getPerformative() == ACLMessage.INFORM)){
+                            Info("ERROR: " + backupResp.getContent());
+                        }
+                        else{
+                            aceptado = true;
+                            Info("Aceptado");
+                        }
+                    }
+                    else{
+                        if (i == listaApoyoCaptura.size()) {
+                            i = 0;
+                            LARVAwait(5000);
+                        }
+                        else {
+                            i += 1;
+                        } 
+                    }
+
                 }
                 E.setNextGoal();
                 break;
             case "CAPTURE":
-                int numCapturas = Integer.parseInt(tokens.nextToken());
-                String tipo = tokens.nextToken();
+                int numCapturas = Integer.parseInt(tokens[1]);
+                String tipo = tokens[2];
                 myStatus = this.doQueryPeople(tipo);
                 //if(tipo == "JEDI"){
                     personasCapturar = this.getEnvironment().getPeople();
-                    String ciudadCaptura = tokens.nextToken();
-                    String agBackup = "";
-                    ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
-                    boolean aceptado = false;
-                    int i = 0;
-                    while(!aceptado){
-                        this.outbox = new ACLMessage();
-                        outbox.setSender(getAID());
-                        outbox.addReceiver(new AID(listaApoyoCaptura.get(i), AID.ISLOCALNAME));
-                        outbox.setContent("BACKUP");
-                        outbox.setPerformative(ACLMessage.REQUEST);
-                        outbox.setConversationId(sessionKey);
-                        outbox.setProtocol("DROIDSHIP");
-                        outbox.setReplyWith("BackUp" + i);
-                        this.LARVAsend(outbox);
-                        
-                        backupResp = LARVAblockingReceive();
-                        Info(listaApoyoCaptura.get(i) + " says: " + backupResp.getContent());
-                        if (backupResp.getPerformative() == ACLMessage.AGREE) {
-                            agBackup = listaApoyoCaptura.get(i);
-                            //Message("El agente " + agBackup + " viene a ayudarme");
-                            backupResp = LARVAblockingReceive();
-                            if (!(backupResp.getPerformative() == ACLMessage.INFORM)){
-                                Info("ERROR: " + backupResp.getContent());
-                            }
-                            else{
-                                aceptado = true;
-                                Info("Aceptado");
-                            }
-                        }
-                        else{
-                            if (i == listaApoyoCaptura.size()) {
-                                i = 0;
-                                LARVAwait(5000);
-                            }
-                            else {
-                                i += 1;
-                            } 
-                        }
-                    
-                    }
+                    String ciudadCaptura = tokens[3];
+//                    String agBackup = "";
+//                    ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
+//                    boolean aceptado = false;
+//                    int i = 0;
+//                    while(!aceptado){
+//                        this.outbox = new ACLMessage();
+//                        outbox.setSender(getAID());
+//                        outbox.addReceiver(new AID(listaApoyoCaptura.get(i), AID.ISLOCALNAME));
+//                        outbox.setContent("BACKUP");
+//                        outbox.setPerformative(ACLMessage.REQUEST);
+//                        outbox.setConversationId(sessionKey);
+//                        outbox.setProtocol("DROIDSHIP");
+//                        outbox.setReplyWith("BackUp" + i);
+//                        this.LARVAsend(outbox);
+//                        
+//                        backupResp = LARVAblockingReceive();
+//                        Info(listaApoyoCaptura.get(i) + " says: " + backupResp.getContent());
+//                        if (backupResp.getPerformative() == ACLMessage.AGREE) {
+//                            agBackup = listaApoyoCaptura.get(i);
+//                            //Message("El agente " + agBackup + " viene a ayudarme");
+//                            backupResp = LARVAblockingReceive();
+//                            if (!(backupResp.getPerformative() == ACLMessage.INFORM)){
+//                                Info("ERROR: " + backupResp.getContent());
+//                            }
+//                            else{
+//                                aceptado = true;
+//                                Info("Aceptado");
+//                            }
+//                        }
+//                        else{
+//                            if (i == listaApoyoCaptura.size()) {
+//                                i = 0;
+//                                LARVAwait(5000);
+//                            }
+//                            else {
+//                                i += 1;
+//                            } 
+//                        }
+//                    
+//                    }
                     
                     Info("FUERAAAAAAAAAAAA");
                     
@@ -556,16 +607,22 @@ public class ITT_FULL extends LARVAFirstAgent {
                         }
                     }
                     
-                    this.outbox = new ACLMessage();
-                        outbox.setSender(getAID());
-                        outbox.addReceiver(new AID(agBackup, AID.ISLOCALNAME));
-                        outbox.setContent("BACKUP");
-                        outbox.setPerformative(ACLMessage.CANCEL);
-                        outbox.setConversationId(sessionKey);
-                        outbox.setProtocol("DROIDSHIP");
-                        outbox.setReplyWith("BackUp" + i);
-                        this.LARVAsend(outbox);
-                //}
+                    
+                
+                E.setNextGoal();
+                break;
+                
+            case "CANCEL":
+                
+                this.outbox = new ACLMessage();
+                outbox.setSender(getAID());
+                outbox.addReceiver(new AID(agBackup, AID.ISLOCALNAME));
+                outbox.setContent("BACKUP");
+                outbox.setPerformative(ACLMessage.CANCEL);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
+                outbox.setReplyWith("BackUp" + i);
+                this.LARVAsend(outbox);
                 E.setNextGoal();
                 break;
                 
@@ -587,7 +644,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                     if (respDest.getPerformative() != ACLMessage.INFORM) {
                         Error("Error: Transponder message not recieved dut to " + respDest.getContent());
-                        return Status.CLOSEPROBLEM;
+                        return Status.CHECKOUT;
                     }
 
                     String aux;
@@ -620,7 +677,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 //Control de posibles errores
                 if (session.getContent().startsWith("Failure") || session.getContent().startsWith("Refuse")) {
                     Error("Could not enable AUTONAV to city due to " + session.getContent());
-                    return Status.CLOSEPROBLEM;
+                    return Status.CHECKOUT;
                 }
 
                 this.getEnvironment().setExternalPerceptions(session.getContent());
@@ -637,7 +694,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                 if (behaviour == null || behaviour.isEmpty()) {
                     Alert("Found no plan to execute");
-                    return Status.CLOSEPROBLEM;
+                    return Status.CHECKOUT;
                 } else {
                     Info("Plan to execute: " + behaviour.toString());
                     while (!behaviour.isEmpty()) {
@@ -648,7 +705,7 @@ public class ITT_FULL extends LARVAFirstAgent {
 
                         if (!Ve(E)) {
                             this.Error("The agent is not alive " + E.getStatus());
-                            return Status.CLOSEPROBLEM;
+                            return Status.CHECKOUT;
                         }
                     }
                 }
@@ -657,6 +714,13 @@ public class ITT_FULL extends LARVAFirstAgent {
                 break;
                 
             case "TRANSFER":
+                listaDEST = this.DFGetAllProvidersOf("TYPE DEST");
+                for (int i = 0; i < listaDEST.size(); i++) {
+                    if (this.DFHasService(listaDEST.get(i), sessionKey)) {
+                        miDEST = listaDEST.get(i);
+                        Alert("FOUND AGENT DEST" + miDEST);
+                    }
+                }
                 
                 Boolean jediTransferido;
                 String jedisCapturados[] = this.getEnvironment().getCargo();
@@ -683,6 +747,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                                 if(inbox.getPerformative() == ACLMessage.INFORM)
                                         jediTransferido = true;
                         }
+                        this.LARVAwait(2000);
                 }
 
                 E.setNextGoal();
@@ -690,7 +755,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 break;
 
             default:
-                return Status.CLOSEPROBLEM;
+                return Status.CHECKOUT;
 
         }
 

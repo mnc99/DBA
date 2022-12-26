@@ -14,8 +14,8 @@ public class Main {
         
         LARVABoot boot = new LARVABoot();
         boot.Boot("isg2.ugr.es", 1099);
-        boot.loadAgent("Dookoo"+suffix, ITT_FULL.class);
-        boot.loadAgent("SSD" + suffix, SSD.class);
+        boot.loadAgent("Dookoo-"+suffix, ITT_FULL.class);
+        boot.loadAgent("SSD-" + suffix, SSD.class);
         boot.WaitToShutDown();
     }
     
