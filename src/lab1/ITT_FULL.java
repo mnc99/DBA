@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package starwars;
+package lab1;
 //package starwars;
 
 import Environment.Environment;
@@ -135,6 +135,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 //addChoice(new Choice("RECHARGE")).
                 addChoice(new Choice("RIGHT"));
         problem = this.inputSelect("Please, select the problem:", problems, " ");
+        sessionAlias = "chocolate";
     }
 
     @Override
@@ -147,18 +148,18 @@ public class ITT_FULL extends LARVAFirstAgent {
             case CHECKIN:
                 myStatus = MyCheckin();
                 break;
-            case OPENPROBLEM:
-                myStatus = MyOpenProblem();
-                break;
+//            case OPENPROBLEM:
+//                myStatus = MyOpenProblem();
+//                break;
             case JOINSESSION:
                 myStatus = MyJoinSession();
                 break;
             case SOLVEPROBLEM:
                 myStatus = MySolveProblem();
                 break;
-            case CLOSEPROBLEM:
-                myStatus = MyCloseProblem();
-                break;
+//            case CLOSEPROBLEM:
+//                myStatus = MyCloseProblem();
+//                break;
             case CHECKOUT:
                 myStatus = MyCheckout();
                 break;
@@ -183,7 +184,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             Error("Unable to checkin");
             return Status.EXIT;
         }
-        return Status.OPENPROBLEM;
+        return Status.JOINSESSION;
     }
 
     public Status MyCheckout() {
@@ -191,6 +192,7 @@ public class ITT_FULL extends LARVAFirstAgent {
         return Status.EXIT;
     }
 
+    // YA NO SE USA EN LAB3. LO HACE EL SSD
     public Status MyOpenProblem() {
         if (this.DFGetAllProvidersOf(service).isEmpty()) {
             Error("Service PMANAGER is down");
@@ -235,15 +237,41 @@ public class ITT_FULL extends LARVAFirstAgent {
         ArrayList<String> droidShipListInSession = new ArrayList<String>();
 
         droidShipList = this.DFGetAllProvidersOf(type);
+        
+        Info("Se han encontrado: " + droidShipList.size());
 
         for (int i = 0; i < droidShipList.size(); i++) {
-            if (this.DFHasService(droidShipList.get(i), sessionKey)) {
+            if (this.DFHasService(droidShipList.get(i), sessionAlias)) {
                 droidShipListInSession.add(droidShipList.get(i));
             }
         }
 
+        Info("SM con sessionAlias " + sessionAlias + ": " + droidShipList.size());
+        
         return droidShipListInSession;
 
+    }
+    
+    public void getSessionKey(String type) {
+        ArrayList<String> sessionManagers = getDroidShipsOfType("SESSION MANAGER");
+        
+        Info("SOLICITANDO TODOS LOS SESSION MANAGERS ACTIVOS");
+        
+        for (int i = 0; i < sessionManagers.size(); i++) {
+            if (this.DFHasService(sessionManagers.get(i), sessionAlias)) {
+                sessionManager = sessionManagers.get(i);
+            }
+        }
+        
+        ArrayList<String> services = this.DFGetAllServicesProvidedBy(sessionManager);
+        
+        Info("Session Manager" + sessionManager);
+        for (String service : services) {
+            if (service.startsWith("SESSION::")) {
+                sessionKey = service;
+            }
+        }
+        Info("My session key is: " + sessionKey);
     }
 
     /**
@@ -276,34 +304,32 @@ public class ITT_FULL extends LARVAFirstAgent {
      * @author Ana García Muñoz (Parte de contacto con DEST)
      */
     public Status MyJoinSession() {
-        Info("Querying CITIES");
-        outbox = session.createReply();
-        outbox.setPerformative(ACLMessage.QUERY_REF);
-        outbox.setContent("Query CITIES session " + sessionKey);
-        this.LARVAsend(outbox);
-        session = LARVAblockingReceive();
-        this.getEnvironment().setExternalPerceptions(session.getContent());
-
-        //ciudades = getEnvironment().getExternalPerceptions().split(" "); 
-        ciudades = getEnvironment().getCityList();
         ciudad_seleccionada = "Whitehorse";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
 
+        // No buscar los type SSD. Hay que pedirlo al SM. Se buscan todos los
+        // SM y se coge el que tiene el alias definido. A ese se pregunta por el sessionKey.
+        getSessionKey("SESSION MANAGER");
+        
         this.resetAutoNAV();
         this.DFAddMyServices(new String[]{"TYPE ITT"});
-        outbox = session.createReply();
+        outbox = new ACLMessage();
+        outbox.setSender(getAID());
+        outbox.addReceiver(new AID(sessionManager, AID.ISLOCALNAME));
         outbox.setPerformative(ACLMessage.REQUEST);
         outbox.setContent("Request join session " + sessionKey + " in " + ciudad_seleccionada);
+        outbox.setConversationId(sessionKey);
+        outbox.setProtocol("DROIDSHIP");
         this.LARVAsend(outbox);
         session = this.LARVAblockingReceive();
         if (!session.getContent().startsWith("Confirm")) {
             Error("Could not join session " + sessionKey + " due to " + session.getContent());
-            return Status.CLOSEPROBLEM;
+            return Status.CHECKOUT;
         }
 
-        this.doPrepareNPC(1, DEST.class);
-        this.doPrepareNPC(1, BB1F.class);
-        this.doPrepareNPC(1,MTT.class);
-        DroidShip.Debug();
+//        this.doPrepareNPC(1, DEST.class);
+//        this.doPrepareNPC(1, BB1F.class);
+//        this.doPrepareNPC(1,MTT.class);
+//        DroidShip.Debug();
 
         this.outbox = session.createReply();
         outbox.setPerformative(ACLMessage.QUERY_REF);
@@ -652,7 +678,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             Alert("Problem " + problem + " is solved!" );
         }
 
-        return Status.CLOSEPROBLEM;
+        return Status.CHECKOUT;
     }
 
     public boolean MyReadPerceptions() {
@@ -842,7 +868,7 @@ public class ITT_FULL extends LARVAFirstAgent {
     }
 
     /**
-     *
+     * YA NO SE USA EN LAB3. LO HACE EL SSD
      * @author Carlos Galán Carracedo (añadida la destrucción del NPC)
      */
     public Status MyCloseProblem() {
