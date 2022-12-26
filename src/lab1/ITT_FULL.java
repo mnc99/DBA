@@ -44,7 +44,8 @@ public class ITT_FULL extends LARVAFirstAgent {
         CLOSEPROBLEM,
         CHECKOUT,
         EXIT,
-        JOINSESSION
+        JOINSESSION,
+        SELECTMISSION
     }
     Status myStatus;
     String service = "PMANAGER",
@@ -162,6 +163,9 @@ public class ITT_FULL extends LARVAFirstAgent {
 //                break;
             case CHECKOUT:
                 myStatus = MyCheckout();
+                break;
+            case SELECTMISSION:
+                myStatus = SelectMission();
                 break;
             case EXIT:
             default:
@@ -369,6 +373,25 @@ public class ITT_FULL extends LARVAFirstAgent {
             whichWall = nextWhichwall;
             point = nextPoint;
             return A.BestChoice();
+        }
+    }
+
+    /**
+     *
+     * @author Javier Serrano Lucas 
+     */
+    @Override
+    public Status SelectMission(){
+        controller = LARVAblockingReceive();
+        if(controller.getPerformative() == ACLMessage.REQUEST){
+            E.makeCurrentMission(controller.getContent());
+            this.MyReadPerceptions();
+            resetAutoNAV();
+            return Status.SOLVEPROBLEM;
+        } else if (controller.getPerformative() == ACLMessage.CANCEL){
+            return Status.CHECKOUT;
+        } else {
+            return Status.CHECKOUT;
         }
     }
 
