@@ -84,6 +84,7 @@ public class ITT_FULL extends LARVAFirstAgent {
     * @author Ana García Muñoz (needRecharge)
     */
     public Plan AgPlan(Environment E, DecisionSet A) {
+        double distanceRight, distanceLeft;
 
         Ei = E.clone();
         Plan p = new Plan();
@@ -102,6 +103,18 @@ public class ITT_FULL extends LARVAFirstAgent {
                 } else if (G(Ei)) {
                     return p;
                 } else {
+                    if (!Ei.isFreeFront()) {
+                        distanceRight = simulateAvoidPlan(Ei, A, "RIGHT");
+                        distanceLeft = simulateAvoidPlan(Ei, A, "LEFT");
+                        
+                        if (distanceRight < distanceLeft) {
+                            nextWhichwall = "RIGHT";
+                        }
+                        else {
+                            nextWhichwall = "LEFT";
+                        }
+                    
+                    }
                     a = Ag(Ei, A);
                     if (a != null) {
                         p.add(a);
@@ -115,6 +128,54 @@ public class ITT_FULL extends LARVAFirstAgent {
         }
 
         return p;
+    }
+    
+    /**
+    * @author Moisés Noguera Carrillo
+    * Simulate a plan to avoid an obstacle following a wall left-hand or 
+    * right hand.
+    * @return Distance to target after the simulation 
+    */
+    public double simulateAvoidPlan(Environment E, DecisionSet A, String wall) {
+        Plan myPlan = new Plan();
+        Environment Eini;
+        Environment Efin;
+        Eini = E.clone();
+        boolean recharge = needRecharge();
+        
+        // Simular bordear dejando la pared a la derecha
+        nextWhichwall = wall;
+        nextdistance = E.getDistance();
+        nextPoint=E.getGPS();
+
+        for (int i = 0; i < 7; i++) {
+            if (recharge == true) {
+                myPlan.add(recAct);
+                Info("El plan es: " + myPlan);
+                //return myPlan;
+
+            } else {
+                Eini.cache();
+                if (!Ve(Eini)) {
+                    //return null;
+                } else if (G(Eini)) {
+                    //return myPlan;
+                } else {
+                    a = Ag(Eini, A);
+                    if (a != null) {
+                        myPlan.add(a);
+                        Efin = S(Eini, a);
+                        Eini = Efin;
+                    } else {
+                        //return null;
+                    }
+                }
+            }
+        }
+        
+        return Eini.getDistance();
+        
+        //return myPlan;
     }
 
     @Override
@@ -399,7 +460,6 @@ public class ITT_FULL extends LARVAFirstAgent {
         
         goalActual = E.getCurrentGoal();
         Info("CURRENT GOAL IS " + goalActual);
-        //StringTokenizer tokens = new StringTokenizer(goalActual);
         String[] tokens = goalActual.split(" ");
         
         if (!goalActual.isEmpty())
@@ -927,7 +987,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             return U(S(E, a), new Choice("MOVE"));
         }
     }
-
+    
     /**
      *
      * @author Carlos Galán Carracedo
@@ -939,9 +999,9 @@ public class ITT_FULL extends LARVAFirstAgent {
     public double goAvoid(Environment E, Choice a) {
         
         Info("GO AVOID");
-
-         if (E.isTargetFrontLeft() || E.isTargetLeft()) {
-             Info("TARGET IN LEFT");
+       
+        if (E.isTargetFrontLeft() || E.isTargetLeft()) {
+            Info("TARGET IN LEFT");
             if (a.getName().equals("LEFT")) {
                 nextWhichwall = "RIGHT";
                 nextdistance = E.getDistance();
