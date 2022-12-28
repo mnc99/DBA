@@ -122,9 +122,9 @@ public class ITT_FULL extends LARVAFirstAgent {
 
         this.enableDeepLARVAMonitoring();
         super.setup();
-
-        this.activateSequenceDiagrams();
-//        this.deactivateSequenceDiagrams();
+        //NO DESCOMENTAR ESTA LÍNEA
+//        this.activateSequenceDiagrams();
+        this.deactivateSequenceDiagrams();
 
         logger.onEcho();
 
@@ -139,7 +139,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 //addChoice(new Choice("RECHARGE")).
                 addChoice(new Choice("RIGHT"));
         problem = this.inputSelect("Please, select the problem:", problems, " ");
-        sessionAlias = "chocolate";
+        sessionAlias = this.inputLine("Introduce el alias de la sesión: ");
     }
 
     @Override
@@ -335,10 +335,6 @@ public class ITT_FULL extends LARVAFirstAgent {
             return Status.CHECKOUT;
         }
 
-//        this.doPrepareNPC(1, DEST.class);
-//        this.doPrepareNPC(1, BB1F.class);
-//        this.doPrepareNPC(1,MTT.class);
-//        DroidShip.Debug();
 
         this.outbox = session.createReply();
         outbox.setPerformative(ACLMessage.QUERY_REF);
@@ -348,14 +344,6 @@ public class ITT_FULL extends LARVAFirstAgent {
         this.getEnvironment().setExternalPerceptions(session.getContent());
         this.MyReadPerceptions();
 
-//        String mission = this.chooseMission();
-//        Info("Mission selected: " + mission);
-//        this.getEnvironment().setCurrentMission(mission);
-//
-//        // Conseguir DEST 
-        
-//
-//        Alert("FOUND " + this.getDroidShipsOfType("TYPE BB1F").size() + " OF TYPE BB1F");
         Info("WATING FOR MISSION...");
 
         return Status.SELECTMISSION;
@@ -451,7 +439,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                     E.setNextGoal();
                     return Status.SOLVEPROBLEM;
                 }
-
+                
                 behaviour = this.AgPlan(E, A);
 
                 if (behaviour == null || behaviour.isEmpty()) {
@@ -552,46 +540,6 @@ public class ITT_FULL extends LARVAFirstAgent {
                 //if(tipo == "JEDI"){
                     personasCapturar = this.getEnvironment().getPeople();
                     String ciudadCaptura = tokens[3];
-//                    String agBackup = "";
-//                    ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
-//                    boolean aceptado = false;
-//                    int i = 0;
-//                    while(!aceptado){
-//                        this.outbox = new ACLMessage();
-//                        outbox.setSender(getAID());
-//                        outbox.addReceiver(new AID(listaApoyoCaptura.get(i), AID.ISLOCALNAME));
-//                        outbox.setContent("BACKUP");
-//                        outbox.setPerformative(ACLMessage.REQUEST);
-//                        outbox.setConversationId(sessionKey);
-//                        outbox.setProtocol("DROIDSHIP");
-//                        outbox.setReplyWith("BackUp" + i);
-//                        this.LARVAsend(outbox);
-//                        
-//                        backupResp = LARVAblockingReceive();
-//                        Info(listaApoyoCaptura.get(i) + " says: " + backupResp.getContent());
-//                        if (backupResp.getPerformative() == ACLMessage.AGREE) {
-//                            agBackup = listaApoyoCaptura.get(i);
-//                            //Message("El agente " + agBackup + " viene a ayudarme");
-//                            backupResp = LARVAblockingReceive();
-//                            if (!(backupResp.getPerformative() == ACLMessage.INFORM)){
-//                                Info("ERROR: " + backupResp.getContent());
-//                            }
-//                            else{
-//                                aceptado = true;
-//                                Info("Aceptado");
-//                            }
-//                        }
-//                        else{
-//                            if (i == listaApoyoCaptura.size()) {
-//                                i = 0;
-//                                LARVAwait(5000);
-//                            }
-//                            else {
-//                                i += 1;
-//                            } 
-//                        }
-//                    
-//                    }
                     
                     Info("FUERAAAAAAAAAAAA");
                     
@@ -989,21 +937,32 @@ public class ITT_FULL extends LARVAFirstAgent {
      * lado. Anteriormente siempre se rodeaba por la derecha.
      */
     public double goAvoid(Environment E, Choice a) {
+        
+        Info("GO AVOID");
 
-        if (E.isTargetRight()) {
-            if (a.getName().equals("RIGHT")) {
-                nextWhichwall = "LEFT";
-                nextdistance = E.getDistance();
-                nextPoint = E.getGPS();
-                return Choice.ANY_VALUE;
-            }
-        } else {
+         if (E.isTargetFrontLeft() || E.isTargetLeft()) {
+             Info("TARGET IN LEFT");
             if (a.getName().equals("LEFT")) {
                 nextWhichwall = "RIGHT";
                 nextdistance = E.getDistance();
-                nextPoint = E.getGPS();
+                nextPoint=E.getGPS();
                 return Choice.ANY_VALUE;
             }
+        }else if (E.isTargetFrontRight() || E.isTargetRight()){
+            Info("TARGET IN RIGHT");
+            if (a.getName().equals("RIGHT")) {
+                nextWhichwall = "LEFT";
+                nextdistance = E.getDistance();
+                nextPoint=E.getGPS();
+                return Choice.ANY_VALUE;
+            }
+        }
+        else {
+            Info("TARGET IS IN FRONT");
+            nextWhichwall = "RIGHT";
+            nextdistance = E.getDistance();
+            nextPoint=E.getGPS();
+            return Choice.ANY_VALUE;
         }
 
         return Choice.MAX_UTILITY;
