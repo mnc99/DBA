@@ -629,15 +629,16 @@ public class ITT_FULL extends LARVAFirstAgent {
                         if (!session.getContent().startsWith("Inform")) {
                             Error("Unable to execute action capture" + " due to " + session.getContent());
                         }
+                        outbox = controller.createReply();
+                        outbox.setPerformative(ACLMessage.INFORM_REF);
+                        outbox.setContent(goalActual);
+                        outbox.setConversationId(sessionAlias);
+                        outbox.setProtocol("DROIDSHIP");
+                        this.LARVAsend(outbox);
                     }
                     
                     
-                outbox = controller.createReply();
-                outbox.setPerformative(ACLMessage.INFORM_REF);
-                outbox.setContent(goalActual);
-                outbox.setConversationId(sessionAlias);
-                outbox.setProtocol("DROIDSHIP");
-                this.LARVAsend(outbox);
+                
                 E.setNextGoal();
                 break;
                 
@@ -789,15 +790,16 @@ public class ITT_FULL extends LARVAFirstAgent {
                                 if(inbox.getPerformative() == ACLMessage.INFORM)
                                         jediTransferido = true;
                         }
+                        outbox = controller.createReply();
+                        outbox.setPerformative(ACLMessage.INFORM_REF);
+                        outbox.setContent(goalActual);
+                        outbox.setConversationId(sessionAlias);
+                        outbox.setProtocol("DROIDSHIP");
+                        this.LARVAsend(outbox);
                         this.LARVAwait(2000);
                 }
 
-                outbox = controller.createReply();
-                outbox.setPerformative(ACLMessage.INFORM_REF);
-                outbox.setContent(goalActual);
-                outbox.setConversationId(sessionAlias);
-                outbox.setProtocol("DROIDSHIP");
-                this.LARVAsend(outbox);
+                
                 E.setNextGoal();
 
                 break;
