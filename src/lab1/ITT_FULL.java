@@ -378,7 +378,6 @@ public class ITT_FULL extends LARVAFirstAgent {
      */
     public Status MyJoinSession() {
         ciudad_seleccionada = "Whitehorse";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
-
         // Obtener la sessionKey y el SM de la sesión actual
         getSessionKey("SESSION MANAGER");
         
@@ -560,7 +559,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 E.setNextGoal();
                 break;
             case "REQUEST":
-                
+                i = 0;
                 ArrayList<String> listaApoyoCaptura = getDroidShipsOfType("TYPE MTT");
                 boolean aceptado = false;
                 
@@ -606,7 +605,6 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox.setConversationId(sessionAlias);
                 outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
-                i = 0;
                 E.setNextGoal();
                 break;
             case "CAPTURE":
