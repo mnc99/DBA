@@ -438,6 +438,7 @@ public class ITT_FULL extends LARVAFirstAgent {
             this.MyReadPerceptions();
             resetAutoNAV();
             Info("GOALS OF THE MISSION:");
+            Info(E.getMission(controller.getContent()));
             for (String goal : E.getMissionGoals(E.getCurrentMission().getName())) {
                 Info("GOAL: " + goal);
             }
@@ -502,7 +503,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                     outbox = controller.createReply();
                     outbox.setPerformative(ACLMessage.INFORM_REF);
                     outbox.setContent(goalActual);
-                    outbox.setConversationId(sessionKey);
+                    outbox.setConversationId(sessionAlias);
                     outbox.setProtocol("DROIDSHIP");
                     this.LARVAsend(outbox);
                     return Status.SOLVEPROBLEM;
@@ -602,9 +603,10 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox = controller.createReply();
                 outbox.setPerformative(ACLMessage.INFORM_REF);
                 outbox.setContent(goalActual);
-                outbox.setConversationId(sessionKey);
+                outbox.setConversationId(sessionAlias);
                 outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
+                i = 0;
                 E.setNextGoal();
                 break;
             case "CAPTURE":
@@ -633,7 +635,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox = controller.createReply();
                 outbox.setPerformative(ACLMessage.INFORM_REF);
                 outbox.setContent(goalActual);
-                outbox.setConversationId(sessionKey);
+                outbox.setConversationId(sessionAlias);
                 outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
                 E.setNextGoal();
@@ -654,7 +656,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox = controller.createReply();
                 outbox.setPerformative(ACLMessage.INFORM_REF);
                 outbox.setContent(goalActual);
-                outbox.setConversationId(sessionKey);
+                outbox.setConversationId(sessionAlias);
                 outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
                 E.setNextGoal();
@@ -723,7 +725,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                     outbox = controller.createReply();
                     outbox.setPerformative(ACLMessage.INFORM_REF);
                     outbox.setContent(goalActual);
-                    outbox.setConversationId(sessionKey);
+                    outbox.setConversationId(sessionAlias);
                     outbox.setProtocol("DROIDSHIP");
                     this.LARVAsend(outbox);
                     E.setNextGoal();
@@ -793,7 +795,7 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox = controller.createReply();
                 outbox.setPerformative(ACLMessage.INFORM_REF);
                 outbox.setContent(goalActual);
-                outbox.setConversationId(sessionKey);
+                outbox.setConversationId(sessionAlias);
                 outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
                 E.setNextGoal();
@@ -812,15 +814,17 @@ public class ITT_FULL extends LARVAFirstAgent {
             outbox = controller.createReply();
             outbox.setPerformative(ACLMessage.INFORM);
             outbox.setContent(E.getCurrentMission().getName());
-            outbox.setConversationId(sessionKey);
-            outbox.setProtocol("DROIDSHIP");
+            //outbox.setConversationId(sessionAlias);
+            //outbox.setProtocol("DROIDSHIP");
             this.LARVAsend(outbox);
-            controller = this.LARVAblockingReceive();
-            Info("Agent " + controller.getSender().toString() + " says: " + controller.getContent());
-            Alert("Problem " + problem + " is solved!" );
+            //Esperar a la siguiente misión
+            return Status.SELECTMISSION;
+            //controller = this.LARVAblockingReceive();
+            //Info("Agent " + controller.getSender().toString() + " says: " + controller.getContent());
+            //Alert("Problem " + problem + " is solved!" );
         }
 
-        return Status.CHECKOUT;
+        //return Status.CHECKOUT;
     }
 
     public boolean MyReadPerceptions() {
