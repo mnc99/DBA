@@ -80,6 +80,8 @@ public class ITT_FULL extends LARVAFirstAgent {
     String agBackup = "";
     int i = 0;
     
+    String mySSD;
+    
     /**
     * @author Ana García Muñoz (needRecharge)
     */
@@ -497,6 +499,12 @@ public class ITT_FULL extends LARVAFirstAgent {
                     Info("The goal " + E.getCurrentGoal() + " is solved");
                     startedGoal = false;
                     E.setNextGoal();
+                    outbox = controller.createReply();
+                    outbox.setPerformative(ACLMessage.INFORM_REF);
+                    outbox.setContent(goalActual);
+                    outbox.setConversationId(sessionKey);
+                    outbox.setProtocol("DROIDSHIP");
+                    this.LARVAsend(outbox);
                     return Status.SOLVEPROBLEM;
                 }
                 
@@ -591,6 +599,12 @@ public class ITT_FULL extends LARVAFirstAgent {
                     }
 
                 }
+                outbox = controller.createReply();
+                outbox.setPerformative(ACLMessage.INFORM_REF);
+                outbox.setContent(goalActual);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
+                this.LARVAsend(outbox);
                 E.setNextGoal();
                 break;
             case "CAPTURE":
@@ -616,7 +630,12 @@ public class ITT_FULL extends LARVAFirstAgent {
                     }
                     
                     
-                
+                outbox = controller.createReply();
+                outbox.setPerformative(ACLMessage.INFORM_REF);
+                outbox.setContent(goalActual);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
+                this.LARVAsend(outbox);
                 E.setNextGoal();
                 break;
                 
@@ -630,6 +649,13 @@ public class ITT_FULL extends LARVAFirstAgent {
                 outbox.setConversationId(sessionKey);
                 outbox.setProtocol("DROIDSHIP");
                 outbox.setReplyWith("BackUp" + i);
+                this.LARVAsend(outbox);
+                
+                outbox = controller.createReply();
+                outbox.setPerformative(ACLMessage.INFORM_REF);
+                outbox.setContent(goalActual);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
                 this.LARVAsend(outbox);
                 E.setNextGoal();
                 break;
@@ -694,6 +720,12 @@ public class ITT_FULL extends LARVAFirstAgent {
                 if (G(E)) {
                     Info("The goal " + E.getCurrentGoal() + " is solved");
                     startedGoal = false;
+                    outbox = controller.createReply();
+                    outbox.setPerformative(ACLMessage.INFORM_REF);
+                    outbox.setContent(goalActual);
+                    outbox.setConversationId(sessionKey);
+                    outbox.setProtocol("DROIDSHIP");
+                    this.LARVAsend(outbox);
                     E.setNextGoal();
                     return Status.SOLVEPROBLEM;
                 }
@@ -758,6 +790,12 @@ public class ITT_FULL extends LARVAFirstAgent {
                         this.LARVAwait(2000);
                 }
 
+                outbox = controller.createReply();
+                outbox.setPerformative(ACLMessage.INFORM_REF);
+                outbox.setContent(goalActual);
+                outbox.setConversationId(sessionKey);
+                outbox.setProtocol("DROIDSHIP");
+                this.LARVAsend(outbox);
                 E.setNextGoal();
 
                 break;
@@ -771,6 +809,14 @@ public class ITT_FULL extends LARVAFirstAgent {
             return Status.SOLVEPROBLEM;
         }
         else {
+            outbox = controller.createReply();
+            outbox.setPerformative(ACLMessage.INFORM);
+            outbox.setContent(E.getCurrentMission().getName());
+            outbox.setConversationId(sessionKey);
+            outbox.setProtocol("DROIDSHIP");
+            this.LARVAsend(outbox);
+            controller = this.LARVAblockingReceive();
+            Info("Agent " + controller.getSender().toString() + " says: " + controller.getContent());
             Alert("Problem " + problem + " is solved!" );
         }
 
