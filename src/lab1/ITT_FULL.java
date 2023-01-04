@@ -377,7 +377,7 @@ public class ITT_FULL extends LARVAFirstAgent {
      * @author Ana García Muñoz (Parte de contacto con DEST)
      */
     public Status MyJoinSession() {
-        ciudad_seleccionada = "Whitehorse";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
+        ciudad_seleccionada = "Hartley";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
         // Obtener la sessionKey y el SM de la sesión actual
         getSessionKey("SESSION MANAGER");
         
