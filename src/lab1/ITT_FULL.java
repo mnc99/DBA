@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lab1;
+package starwars;
 //package starwars;
 
 import Environment.Environment;
@@ -377,7 +377,7 @@ public class ITT_FULL extends LARVAFirstAgent {
      * @author Ana García Muñoz (Parte de contacto con DEST)
      */
     public Status MyJoinSession() {
-        ciudad_seleccionada = "Hartley";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
+        ciudad_seleccionada = "Hartley";//Hartley";//this.inputSelect("Please select the city to start: ", ciudades, ciudades[0]);
         // Obtener la sessionKey y el SM de la sesión actual
         getSessionKey("SESSION MANAGER");
         
